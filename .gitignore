@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+lanes/*/recipes/*.json
+!lanes/*/recipes/.gitkeep
+lanes/*/reference/reference.json
+lanes/*/reference/*.sha256

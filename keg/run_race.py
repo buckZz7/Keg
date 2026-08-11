@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Keg — run a compression race: measure a recipe against the model reference.
+
+usage: run_race.py <reference_artifact.json> <submission_url> --recipe recipe.json
+       --model-file <path> [--num-params 30e9] [--epoch 2026-08]
+       [--king-receipt <king receipt.json>] [--out receipt.json]
+
+The gate (fidelity vs the stored BF16 model reference) is deterministic and
+involves no LLM. The race metric is SIZE — the house-measured footprint of
+the model file. The crown moves only if a challenger is SMALLER than the
+incumbent king AND still holds band A (>= 0.99 top-1) fidelity: a smaller
+but lossier recipe cannot take the crown.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from keg.fidelity import measure_vs_reference  # noqa: E402
+from keg.receipt import build_receipt, verify_receipt  # noqa: E402
+from keg.recipe import Recipe, band_for, eligible  # noqa: E402
+
+
+def _king(receipt_path: str) -> dict:
+    with open(receipt_path) as f:
+        return json.load(f)
+
+
+def crown_decision(challenger: dict, king: dict | None) -> tuple[bool, str]:
+    """The crown moves only if the challenger is SMALLER AND as faithful.
+
+    Both must use the same reference artifact / corpus, else not comparable.
+    The challenger must hold band A (>= 0.99 top-1). Smaller-but-lossier does
+    not dethrone.
+    """
+    cf = challenger.get("fidelity", {})
+    cs = challenger.get("size", {})
+    if challenger.get("band") != "A":
+        return False, "not band A (below the crown fidelity floor)"
+    if not eligible(cf.get("top1_match", 0)):
+        return False, "below the eligibility floor"
+    if king is None:
+        return True, ""
+    if (cf.get("corpus_version") != king["fidelity"].get("corpus_version")
+            or cf.get("reference_sha256") != king["fidelity"].get("reference_sha256")):
+        return False, "reference mismatch (not comparable)"
+    king_size = king.get("size", {}).get("size_bytes", float("inf"))
+    if cs.get("size_bytes", float("inf")) < king_size:
+        return True, ""
+    return False, "not smaller than the incumbent king"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Run one Keg compression race measurement.")
+    ap.add_argument("reference_artifact", help="Stored BF16 reference artifact JSON (this lane's reference)")
+    ap.add_argument("submission_url", help="Submission endpoint (the recipe under test)")
+    ap.add_argument("--recipe", required=True, help="recipe.json (the submission)")
+    ap.add_argument("--model-file", required=True, help="Path to the actual model file (house measures its size)")
+    ap.add_argument("--num-params", type=float, default=None, help="Model parameter count (for bpw)")
+    ap.add_argument("--king-receipt", default="", help="Current crown's receipt.json — enables the dominance rule")
+    ap.add_argument("--epoch", default="2026-08", help="Release epoch (per model release)")
+    ap.add_argument("--out", default="", help="Receipt output path")
+    args = ap.parse_args()
+
+    recipe = Recipe(**json.loads(Path(args.recipe).read_text()))
+
+    # House measures the TRUE model footprint — a miner's claim is advisory.
+    size_bytes = Path(args.model_file).stat().st_size
+
+    print(f"== compression race: {recipe.model} [{recipe.quant} / {recipe.format}] ==")
+    print("gate: fidelity vs stored BF16 reference ...")
+    fidelity = measure_vs_reference(args.reference_artifact, args.submission_url)
+    band = band_for(fidelity.get("top1_match", 0))
+    fidelity["band"] = band
+    print(f"  top1_match={fidelity.get('top1_match'):.3f} kl_mean={fidelity.get('kl_mean'):.4f} "
+          f"kl_p999={fidelity.get('kl_p999'):.4f} band={band} (n={fidelity.get('n')})")
+
+    size_gb = size_bytes / (1024 ** 3)
+    bpw = (size_bytes * 8 / args.num_params) if args.num_params else None
+    print(f"  size={size_gb:.2f} GB ({size_bytes} bytes)"
+          + (f", bpw={bpw:.2f}" if bpw else ""))
+
+    crown = None
+    if args.king_receipt:
+        king = _king(args.king_receipt)
+        dethroned, reason = crown_decision(fidelity, king)
+        crown = {
+            "dethroned": dethroned,
+            "challenger_size_bytes": size_bytes,
+            "king_size_bytes": king.get("size", {}).get("size_bytes"),
+        }
+        if reason:
+            crown["hold_reason"] = reason
+        verdict = "CROWN MOVED" if dethroned else "crown holds"
+        print(f"  vs king ({king.get('size', {}).get('size_bytes')} bytes) -> {verdict}"
+              + (f" ({reason})" if reason else ""))
+    else:
+        dethroned = band == "A"
+        crown = {"dethroned": dethroned, "first_band_A": dethroned}
+        print(f"  (no king yet — first band-A recipe becomes the crown)")
+
+    receipt = build_receipt(recipe, fidelity, size_bytes, args.epoch,
+                            num_params=args.num_params, crown=crown)
+    ok = verify_receipt(receipt)
+    print(f"gate_passed={receipt['gate_passed']} band={receipt['band']} "
+          f"receipt_valid={ok} sha={receipt['receipt_sha256'][:16]}")
+
+    out = args.out or f"lanes/{recipe.model}/receipts/receipt_{receipt['receipt_sha256'][:16]}.json"
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    Path(out).write_text(json.dumps(receipt, indent=2))
+    print(f"receipt: {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
