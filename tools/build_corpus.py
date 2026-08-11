@@ -36,6 +36,16 @@ WIKI_TOPICS = [
 
 ARXIV_CATS = ["cs.CL", "cs.LG", "cs.CV", "cs.SE", "math.NA"]
 
+# Real source files with clear permissive licenses (MIT/BSD/Apache-2.0),
+# fetched from GitHub raw. Used to add a code component to the corpus.
+CODE_FILES = [
+    ("https://raw.githubusercontent.com/psf/requests/main/src/requests/models.py", "apache2 python"),
+    ("https://raw.githubusercontent.com/pallets/flask/main/src/flask/app.py", "bsd3 python"),
+    ("https://raw.githubusercontent.com/expressjs/express/master/lib/application.js", "mit js"),
+    ("https://raw.githubusercontent.com/gorilla/mux/main/mux.go", "bsd3 go"),
+    ("https://raw.githubusercontent.com/serde-rs/json/master/src/ser.rs", "mit rust"),
+]
+
 
 def fetch(url: str, timeout: int = 60, retries: int = 3) -> str | None:
     for i in range(retries):
@@ -116,16 +126,46 @@ def arxiv_docs() -> list[str]:
     return docs
 
 
+def code_files() -> list[str]:
+    """Real source (MIT/BSD/Apache) chunked into code documents.
+
+    Each source file is split into blocks of ~300 chars (lines joined with a
+    space so each block is one corpus line/document), giving many code-like
+    documents of manageable length for next-token sampling.
+    """
+    docs = []
+    for url, lic in CODE_FILES:
+        txt = fetch(url)
+        if not txt:
+            continue
+        lines = [ln.strip() for ln in txt.splitlines()]
+        lines = [ln for ln in lines
+                 if ln and not ln.lstrip().startswith(("//", "#", "*", "/*"))]
+        blocks = []; cur = []; curlen = 0
+        for ln in lines:
+            cur.append(ln); curlen += len(ln) + 1
+            if curlen >= 300:
+                blocks.append(" ".join(cur)); cur = []; curlen = 0
+        if cur:
+            blocks.append(" ".join(cur))
+        kept = [b for b in blocks if (d := keep_doc(b, lo=120, hi=3000)) is not None]
+        print(f"  code/{lic.split()[-1]}: {len(blocks)} blocks -> {len(kept)} docs")
+        docs.extend(kept)
+        time.sleep(0.3)
+    return docs
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="corpus/production.txt")
     args = ap.parse_args()
 
-    print("building production corpus (prose + knowledge + technical) ...")
+    print("building production corpus (prose + knowledge + technical + code) ...")
     docs = []
     docs += gutenberg_docs()
     docs += wiki_docs()
     docs += arxiv_docs()
+    docs += code_files()
 
     if not docs:
         print("no documents fetched — check network"); return 1

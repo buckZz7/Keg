@@ -24,9 +24,12 @@ a multi-domain, public-domain mix:
 - **Knowledge** — Wikipedia article intros (CC BY-SA).
 - **Technical** — 200 recent arXiv abstracts across 5 categories (cs.CL, cs.LG,
   cs.CV, cs.SE, math.NA).
+- **Code** — real source files with permissive licenses (MIT/BSD/Apache-2.0),
+  chunked into code documents: Python (requests, flask), JS (express), Go
+  (gorilla/mux), Rust (serde_json). Covers glimmer's code capability.
 
-**Stats (current build):** ~5,268 documents, ~2.68M chars (~670K tokens), and
-~38,000 candidate next-token positions at the 64-char stride — far above the
+**Stats (current build):** ~5,674 documents, ~2.81M chars (~703K tokens), and
+~40,000 candidate next-token positions at the 64-char stride — far above the
 ~5,000–10,000 we need. The race samples a deterministic subset (pure function
 of the corpus hash), so the reference and every submission measure the same
 points. With N≈5,000 the standard error on a top-1 rate near 0.99 is ~0.2% —
@@ -35,12 +38,8 @@ cleanly separating accepted (≥99%) from rejected (~97%).
 **Pinning:** the corpus is pinned by its sha256 (recorded in every receipt).
 Run the house measurement with `KEG_CORPUS_FILE=corpus/production.txt`. The
 reference artifact stores each sampled position's top-k log-probs, so it stays
-small even for a large corpus.
-
-**Known gap:** the mix is prose/knowledge/technical but has **no code** yet —
-glimmer is code-capable, so a code component (permissively-licensed, e.g.
-public-domain or MIT source) should be added to the corpus before the first
-production reference is fixed. `tools/build_corpus.py` is the place to add it.
+small even for a large corpus. Rebuild deterministically with
+`tools/build_corpus.py`.
 
 ## Why public (no secrecy machinery)
 
