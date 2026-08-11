@@ -55,13 +55,13 @@ def build_receipt(
         "recipe": recipe.model_dump(),
         "recipe_fingerprint": recipe.fingerprint(),
         "fidelity": fidelity,
-        "band": fidelity.get("band", "R"),
+        "accepted": bool(fidelity.get("top1_match", 0) >= 0.99),
         "size": {
             "size_bytes": size_bytes,
             "size_gb": round(size_gb, 3),
             "bpw": round(bpw, 3) if bpw is not None else None,
         },
-        "gate_passed": bool(fidelity.get("top1_match", 0) >= 0.90),
+        "gate_passed": bool(fidelity.get("top1_match", 0) >= 0.99),
         "ts": time.time(),
     }
     if crown is not None:

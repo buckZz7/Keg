@@ -2,8 +2,9 @@
 
 The compression race for **<Model Name>** (<one-line description>).
 
-**The crown:** the smallest recipe that still holds **band A (≥0.99 top-1)**
-fidelity against the lane's BF16 reference. See the [rules](../../RULES.md).
+**The crown:** the smallest recipe that still holds **≥0.99 top-1** fidelity
+against the lane's BF16 reference. Only accepted (≥0.99) recipes compete. See
+the [rules](../../RULES.md).
 
 ## The reference
 
@@ -16,15 +17,10 @@ house-held. See `reference/MANIFEST.md`.
 > and fill `reference/MANIFEST.md`. The reference never changes while the lane
 > is live.
 
-## Seeded baseline
+## Board and rewards
 
-The house pre-claims the current best-known faithful quants for this model.
-Submitting these earns nothing; only a strictly-smaller recipe that still holds
-band A can take the crown. See `seed/MANIFEST.md`.
-
-## Board
-
-See `board.md` — receipts are the source of truth.
+See `board.md`. The crown is the only reward today; adding reward tiers is a
+row in the Rewards table ("lanes within lanes").
 
 ## Submitting
 

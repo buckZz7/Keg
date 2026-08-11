@@ -1,11 +1,12 @@
 # Lane: glimmer-30b
 
 The compression race for **Muse Glimmer 30B** (Meta's open-weight 30B dense
-vision model, Apache 2.0). The anchor lane — this is where the mechanism is
-proven before it spreads to more models.
+vision model, Apache 2.0). The anchor lane — where the mechanism is proven
+before it spreads to more models.
 
-**The crown:** the smallest recipe that still holds **band A (≥0.99 top-1)**
-fidelity against the lane's BF16 reference. See the [rules](../../RULES.md).
+**The crown:** the smallest recipe that still holds **≥0.99 top-1** fidelity
+against the lane's BF16 reference. Only accepted (≥0.99) recipes compete; below
+that is rejected. See the [rules](../../RULES.md).
 
 ## The reference
 
@@ -15,15 +16,10 @@ house-held. See `reference/MANIFEST.md`. The 16-bit weights need ~64 GB and do
 not fit a single 5090, so the reference is produced by a one-time CPU pass on
 a larger machine — it is ~40 KB and replayable forever.
 
-## Seeded baseline (the free-ride killer)
+## Board and rewards
 
-The house pre-claims the current best-known faithful quants for this model.
-Submitting these earns nothing; only a strictly-smaller recipe that still holds
-band A can take the crown. See `seed/MANIFEST.md`.
-
-## Board
-
-See `board.md` — receipts are the source of truth.
+See `board.md`. The crown is the only reward today; adding reward tiers is a
+row in the Rewards table ("lanes within lanes").
 
 ## Model context (cited, not run by us)
 

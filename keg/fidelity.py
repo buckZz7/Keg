@@ -23,8 +23,6 @@ from typing import Dict, List, Tuple
 
 import requests
 
-from .recipe import band_for
-
 # Fixed held-out prompts. NOT the models' training data; fixed so every
 # race is comparable. Versioned: a corpus change invalidates prior
 # receipts (they record the version + hash).
@@ -175,7 +173,7 @@ def measure_fidelity(
     *swap* is given — a callable that switches the box from the
     reference server to the submission server) the submission. The gate
     passes when top-1 >= threshold and KL-99.9 <= threshold. The report
-    records the MEASURED band (band_for top-1) plus the corpus version +
+    records the measured fidelity plus the corpus version +
     hash so receipts stay replayable.
 
     Prefer measure_vs_reference() (stored BF16 artifact) — this two-pass
@@ -192,7 +190,6 @@ def measure_fidelity(
     report = _compare(refs, subs, corpus)
     report["corpus_version"] = CORPUS_VERSION
     report["corpus_sha256"] = corpus_sha
-    report["band"] = band_for(report["top1_match"])
     return report
 
 
@@ -247,7 +244,6 @@ def measure_vs_reference(
               "n": n}
     report["corpus_version"] = CORPUS_VERSION
     report["corpus_sha256"] = corpus_sha
-    report["band"] = band_for(report["top1_match"])
     report["reference_sha256"] = hashlib.sha256(
         _Path(reference_path).read_bytes()).hexdigest()[:16]
     return report

@@ -8,8 +8,8 @@ usage: run_race.py <reference_artifact.json> <submission_url> --recipe recipe.js
 The gate (fidelity vs the stored BF16 model reference) is deterministic and
 involves no LLM. The race metric is SIZE — the house-measured footprint of
 the model file. The crown moves only if a challenger is SMALLER than the
-incumbent king AND still holds band A (>= 0.99 top-1) fidelity: a smaller
-but lossier recipe cannot take the crown.
+incumbent king AND accepted (>= 0.99 top-1): a smaller but lossier recipe
+cannot take the crown.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from keg.fidelity import measure_vs_reference  # noqa: E402
 from keg.receipt import build_receipt, verify_receipt  # noqa: E402
-from keg.recipe import Recipe, band_for, eligible  # noqa: E402
+from keg.recipe import Recipe, accepted  # noqa: E402
 
 
 def _king(receipt_path: str) -> dict:
@@ -34,15 +34,13 @@ def crown_decision(challenger: dict, king: dict | None) -> tuple[bool, str]:
     """The crown moves only if the challenger is SMALLER AND as faithful.
 
     Both must use the same reference artifact / corpus, else not comparable.
-    The challenger must hold band A (>= 0.99 top-1). Smaller-but-lossier does
+    The challenger must be accepted (>= 0.99 top-1). Smaller-but-lossier does
     not dethrone.
     """
     cf = challenger.get("fidelity", {})
     cs = challenger.get("size", {})
-    if challenger.get("band") != "A":
-        return False, "not band A (below the crown fidelity floor)"
-    if not eligible(cf.get("top1_match", 0)):
-        return False, "below the eligibility floor"
+    if not accepted(cf.get("top1_match", 0)):
+        return False, "below the acceptance bar (needs >= 0.99 top-1)"
     if king is None:
         return True, ""
     if (cf.get("corpus_version") != king["fidelity"].get("corpus_version")
@@ -74,10 +72,21 @@ def main() -> int:
     print(f"== compression race: {recipe.model} [{recipe.quant} / {recipe.format}] ==")
     print("gate: fidelity vs stored BF16 reference ...")
     fidelity = measure_vs_reference(args.reference_artifact, args.submission_url)
-    band = band_for(fidelity.get("top1_match", 0))
-    fidelity["band"] = band
+    ok_gate = accepted(fidelity.get("top1_match", 0))
     print(f"  top1_match={fidelity.get('top1_match'):.3f} kl_mean={fidelity.get('kl_mean'):.4f} "
-          f"kl_p999={fidelity.get('kl_p999'):.4f} band={band} (n={fidelity.get('n')})")
+          f"kl_p999={fidelity.get('kl_p999'):.4f} (n={fidelity.get('n')})")
+
+    if not ok_gate:
+        print(f"  REJECTED: top-1 < {0.99} — the model is not recognizably itself "
+              "(holds < 99% of the reference). Not a valid submission; no reward.")
+        # Still write a receipt so the attempt is on record, but it holds no crown.
+        size_bytes = Path(args.model_file).stat().st_size
+        receipt = build_receipt(recipe, fidelity, size_bytes, args.epoch, num_params=args.num_params)
+        out = args.out or f"lanes/{recipe.model}/receipts/rejected_{receipt['receipt_sha256'][:16]}.json"
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(receipt, indent=2))
+        print(f"receipt: {out}")
+        return 0
 
     size_gb = size_bytes / (1024 ** 3)
     bpw = (size_bytes * 8 / args.num_params) if args.num_params else None
@@ -99,15 +108,14 @@ def main() -> int:
         print(f"  vs king ({king.get('size', {}).get('size_bytes')} bytes) -> {verdict}"
               + (f" ({reason})" if reason else ""))
     else:
-        dethroned = band == "A"
-        crown = {"dethroned": dethroned, "first_band_A": dethroned}
-        print(f"  (no king yet — first band-A recipe becomes the crown)")
+        dethroned = True  # first accepted recipe becomes the crown
+        crown = {"dethroned": True, "first_crown": True}
+        print("  (no king yet — first accepted recipe becomes the crown)")
 
     receipt = build_receipt(recipe, fidelity, size_bytes, args.epoch,
                             num_params=args.num_params, crown=crown)
     ok = verify_receipt(receipt)
-    print(f"gate_passed={receipt['gate_passed']} band={receipt['band']} "
-          f"receipt_valid={ok} sha={receipt['receipt_sha256'][:16]}")
+    print(f"accepted={receipt['accepted']} receipt_valid={ok} sha={receipt['receipt_sha256'][:16]}")
 
     out = args.out or f"lanes/{recipe.model}/receipts/receipt_{receipt['receipt_sha256'][:16]}.json"
     Path(out).parent.mkdir(parents=True, exist_ok=True)

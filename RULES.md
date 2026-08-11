@@ -1,7 +1,9 @@
 # Keg — Rules
 
-The full mechanism. Short version: **smallest recipe that still holds the
-model's behavior wins. Everything is measured, nothing is claimed.**
+The full mechanism. Short version: **the smallest recipe that still *is* the
+model wins. A recipe is accepted — and competes — only if it holds ≥99% of the
+model's true behavior.** Everything is measured, nothing is claimed. There are
+no fidelity tiers: you are either still the model, or you aren't.
 
 ## The reference (the truth, and the referee)
 
@@ -27,22 +29,17 @@ that produced it. A recipe the house cannot reproduce is not a submission. The
 race metric is **size** — the model's footprint — measured by the house from
 the real file, never taken from the miner's word.
 
-## The gate — fidelity
+## The gate — acceptance
 
 Fidelity = top-1 token match (+ KL) of the recipe's output distribution vs the
-reference, over the held-out corpus. Deterministic. Bands are MEASURED, not
-named — a recipe lands where its measurement puts it, whatever the format
-claims:
+reference, over the held-out corpus. Deterministic. **A recipe is accepted only
+if it holds ≥0.99 top-1.** Below that it is rejected — the model is no longer
+recognizably itself.
 
-| Band | Top-1 vs reference | Meaning |
-|---|---|---|
-| **A** | ≥ 0.99 | indistinguishable (Q6 / Q8 / FP8 class) |
-| B | 0.97–0.99 | acceptable (Q5 / Q4_K_M class) |
-| C | 0.90–0.97 | the cliff (Q3 / Q2 class) |
-| *rejected* | < 0.90 | below the floor — the model is no longer itself (Q1 / IQ1) |
-
-Thresholds are provisional, calibrated by a ladder measurement on the box, and
-revised only by measurement — never by fiat.
+This bar is the anti-free-ride. Holding ≥99% is not free: most off-the-shelf
+low quants (Q4_K_M class) land at 97–98% and get rejected. You cannot submit
+something found lying around; you must produce something that is genuinely
+still the model.
 
 ## The score — size
 
@@ -52,38 +49,39 @@ Smaller is better.
 ## The crown — dominance
 
 A challenger takes a lane's crown **only if it is smaller than the incumbent
-king AND still holds band A (≥0.99 top-1)**. A smaller-but-lossier recipe cannot
-take the crown; it is listed on the board as a lossy alternative. Both sides
-must share the same reference artifact and corpus version, else the crown holds
-("reference mismatch").
+king AND accepted (≥0.99 top-1)**. A smaller-but-lossier recipe is rejected,
+not rewarded. Both sides must share the same reference artifact and corpus
+version, else the crown holds ("reference mismatch"). There is no seed: the
+first accepted recipe establishes the crown, and anyone who beats it is
+rewarded for genuinely better compression.
 
-## The seed — killing the free-ride
+## Rewards
 
-The house seeds each lane with the current best-known faithful quants (e.g.
-Q8_0, Q6_K, Q5_K_M, Q4_K_M) as baseline receipts. Submitting those earns
-nothing — the house already holds them. Miners are rewarded **only** for
-producing something strictly smaller that still holds band A. The only path to
-the crown is real compression innovation.
+Rewards are listed per lane in `board.md` under **Rewards**. Today there is one:
+the **crown** (smallest accepted recipe). If more reward tiers are ever wanted,
+they are added as rows in the lane's Rewards table — no new machinery. Nothing
+in the reference or the gate changes when a tier is added.
 
 ## Receipts
 
 Every run produces one receipt: hash-bound (sha256 over all fields),
 replayable, valid only against the current reference set. It records the
-measured band, the house-measured size, the box fingerprint, and the corpus +
-reference hashes. **Receipts are the source of truth for the board.** A receipt
-that doesn't replay is not a receipt.
+measured fidelity, the house-measured size, the box fingerprint, and the
+corpus + reference hashes. **Receipts are the source of truth for the board.** A
+receipt that doesn't replay is not a receipt. Rejected attempts get a receipt
+too, so every run is on record.
 
 ## Why miners can't farm it
 
 - **Can't memorize** — the reference is immutable and not a task set.
-- **Can't submit existing stuff** — the seed already owns it.
+- **Can't submit junk** — below ≥0.99 it's rejected outright; holding 99% is not free.
 - **Can't game a judge** — there is no judge; the reference is a computation.
 - **Can't adapt to game it** — a recipe is a *fixed file*, not an agent.
 
 ## Adding a model
 
-Each lane is self-contained: its own reference, seed, receipts, and board,
-sharing only this ruleset and the machinery under `keg/`. Copy the template
+Each lane is self-contained: its own reference, receipts, and board, sharing
+only this ruleset and the machinery under `keg/`. Copy the template
 (`lanes/_TEMPLATE/`), generate the new model's reference from its BF16 weights,
-seed it, and the lane is live. Cross-lane comparisons are meaningless (a Q6 of
-one model vs a Q6 of another) and are never shown.
+and the lane is live. Cross-lane comparisons are meaningless (a Q6 of one model
+vs a Q6 of another) and are never shown.
