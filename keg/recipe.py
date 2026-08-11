@@ -7,8 +7,11 @@ holding the model's behavior. The house MEASURES the real file size into
 the receipt; a miner's claim is advisory only.
 
 A recipe is accepted — and competes for the crown — only if it holds >= 0.99
-top-1 against the model's own BF16 reference. Below that it is rejected.
-There are no fidelity tiers: you are either still the model, or you aren't.
+top-1 against the model's own BF16 reference, AND stays within a KL bound of
+the reference's next-token distribution (the secondary, production-standard
+fidelity metric — top-1 catches argmax flips, KL catches tail/drift).
+Below either it is rejected. There are no fidelity tiers: you are either
+still the model, or you aren't.
 """
 from __future__ import annotations
 
@@ -36,15 +39,25 @@ class Recipe(BaseModel):
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
-# Fidelity threshold for ACCEPTANCE and the CROWN. A recipe is only a valid
+# Fidelity thresholds for ACCEPTANCE and the CROWN. A recipe is only a valid
 # submission — and only competes for the crown — if it holds >= this top-1
-# match against the model's own BF16 reference. Below it, rejected.
+# match (primary) against the model's own BF16 reference, and stays within
+# this KL bound (secondary, production-standard). Below either, rejected.
 #
 # This is the anti-free-ride: holding the model's behavior is not free. Most
-# off-the-shelf low quants (Q4_K_M class) land at 97-98% and get rejected.
+# off-the-shelf low quants (Q4_K_M class) land at 97-98% top-1 and get
+# rejected. The KL bound is generous (catches gross drift, not near-lossless
+# recipes) and is set by the calibration ladder on the box.
 ACCEPT_MIN = 0.99
+ACCEPT_KL = 0.20
 
 
-def accepted(top1_match: float) -> bool:
-    """A recipe is accepted (and eligible for the crown) only at >= 0.99."""
-    return top1_match >= ACCEPT_MIN
+def accepted(top1_match: float, kl_mean: float | None = None) -> bool:
+    """A recipe is accepted (and eligible for the crown) only if it holds
+    >= 0.99 top-1 AND stays within the KL bound. The KL bar is a secondary
+    safety net — top-1 is the precision gate."""
+    if top1_match < ACCEPT_MIN:
+        return False
+    if kl_mean is not None and kl_mean > ACCEPT_KL:
+        return False
+    return True

@@ -15,7 +15,7 @@ from the BF16 weights over the **public corpus** — open and re-derivable by
 anyone. See `reference/MANIFEST.md` and [corpus/](../../corpus/MANIFEST.md).
 The 16-bit weights need ~64 GB and do not fit a single 5090, so the reference
 is produced by a one-time CPU pass on a larger machine; it stays small because
-it stores only each sampled position's top-1 token.
+it stores each sampled position's top-k log-probs.
 
 ## Board and rewards
 

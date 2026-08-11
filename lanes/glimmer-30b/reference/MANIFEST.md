@@ -6,8 +6,9 @@ corpus**. Anyone can re-derive it by running the model over the same corpus.
 
 **What is stored here:**
 - `reference.json` — the artifact: `{schema, corpus_version, corpus_sha256,
-  n, positions: {<doc:offset>: top1_token}}`. It stores only each sampled
-  position's top-1 token, so it stays small even for a large corpus.
+  top_k, n, positions: {<doc:offset>: {token: logprob}}}`. It stores each
+  sampled position's top-k log-probs (enough to replay top-1 and KL), so it
+  stays small even for a large corpus.
 - The **corpus is public** (see [corpus/](../../corpus/MANIFEST.md)) and pinned
   by `corpus_sha256`, recorded in every receipt.
 

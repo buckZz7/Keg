@@ -135,11 +135,12 @@ def main() -> int:
             size_bytes = int(gb * (1024 ** 3))
             fidelity = measure_vs_reference(str(ref_artifact), url(sub), corpus=corpus)
             measured = fidelity.get("top1_match", 0.0)
+            kl = fidelity.get("kl_mean", float("inf"))
 
-            if not accepted(measured):
+            if not accepted(measured, kl):
                 receipt = build_receipt(recipe, fidelity, size_bytes, epoch="sim")
                 print(f"{name:<14}{quant:<9}{gb:>6.1f}{measured:>7.3f}  REJECTED "
-                      f"(holds {measured*100:.1f}% < 99%)")
+                      f"(top-1 {measured*100:.1f}% < 99% or KL {kl:.3f} above bound)")
                 print(f"  {'':22}receipt valid={verify_receipt(receipt)} "
                       f"sha={receipt['receipt_sha256'][:10]}")
                 continue

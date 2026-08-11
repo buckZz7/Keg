@@ -12,8 +12,9 @@ sampled from a **public, diverse, versioned corpus**. Anyone can re-derive the
 reference by running the model over the same corpus.
 
 - **Public by design.** The corpus is open and hash-bound; the reference
-  artifact stores only each sampled position's top-1 token. No sealed corpus,
-  no house authority — trustlessness comes from openness, not secrecy.
+  artifact stores each sampled position's top-k log-probs (enough to replay
+  both metrics below). No sealed corpus, no house authority — trustlessness
+  comes from openness, not secrecy.
 - **Deterministic.** The sampled positions are a pure function of the corpus
   (seeded by its hash), so the reference and every submission measure the same
   points. Repro­ducible by anyone.
@@ -29,18 +30,28 @@ the real file, never from the miner's word.
 
 ## The gate — acceptance
 
-Fidelity = **top-1 next-token agreement** of the recipe vs the reference, over
-the sampled positions. Deterministic. **A recipe is accepted only if it holds
-≥0.99 top-1**; below that it is rejected.
+Fidelity is measured with the two metrics production serving stacks actually
+use, over the sampled positions, both vs the model's own reference:
 
-The threshold is **calibrated by a ladder** — on a new model the house first
+- **Top-1 next-token agreement** (primary) — the recipe's most-likely token
+  must match the model's. This is the direct "is the model recognizably
+  itself" signal.
+- **KL divergence** (secondary) — distribution shift vs the reference, bounded
+  over the matched top-k. Top-1 catches argmax flips; KL catches tail/drift.
+
+**A recipe is accepted only if it holds ≥0.99 top-1 AND stays within the KL
+bound**; below either it is rejected. Both are deterministic.
+
+The thresholds are **calibrated by a ladder** — on a new model the house first
 measures where the known quants (Q8 → Q2) land against the reference, then sets
-the bar from data, not by fiat.
+the bars from data, not by fiat. The KL bound is a generous safety net (catches
+gross drift, not near-lossless recipes); top-1 is the precision gate.
 
 The ≥99% bar tracks the near-baseline "silent zone" of quantization fidelity —
 the cluster (Q4_K_M → Q8) where distributional metrics lose the power to *rank*
-quality. Keg does not rank within that zone; it gates (≥99% or not) and then
-races by size, which is exactly the right discriminator there.
+quality (the collapse is metric-invariant: top-1 and KL alike). Keg does not
+rank within that zone; it gates (≥99% or not) and then races by size, which is
+exactly the right discriminator there.
 (*"Displacement Is Not Direction," arXiv:2606.19558 — see corpus/MANIFEST.md.*)
 
 ## The score — size
@@ -51,10 +62,10 @@ Smaller is better.
 ## The crown — dominance
 
 A challenger takes a lane's crown **only if it is smaller than the incumbent
-king AND accepted (≥0.99 top-1)**. A smaller-but-lossier recipe is rejected, not
-rewarded. Both sides must share the same corpus and reference, else the crown
-holds. There is no seed: the first accepted recipe establishes the crown;
-anyone smaller takes it.
+king AND accepted (≥0.99 top-1, within the KL bound)**. A smaller-but-lossier
+recipe is rejected, not rewarded. Both sides must share the same corpus and
+reference, else the crown holds. There is no seed: the first accepted recipe
+establishes the crown; anyone smaller takes it.
 
 ## Rewards
 

@@ -72,13 +72,14 @@ def main() -> int:
     print(f"== compression race: {recipe.model} [{recipe.quant} / {recipe.format}] ==")
     print("gate: fidelity vs stored BF16 reference ...")
     fidelity = measure_vs_reference(args.reference_artifact, args.submission_url)
-    ok_gate = accepted(fidelity.get("top1_match", 0))
-    print(f"  top1_match={fidelity.get('top1_match'):.3f} (n={fidelity.get('n')} samples, "
+    ok_gate = accepted(fidelity.get("top1_match", 0), fidelity.get("kl_mean"))
+    print(f"  top1_match={fidelity.get('top1_match'):.3f}  kl_mean={fidelity.get('kl_mean'):.4f}  "
+          f"kl_p999={fidelity.get('kl_p999'):.4f}  (n={fidelity.get('n')} samples, "
           f"corpus_sha={fidelity.get('corpus_sha256')})")
 
     if not ok_gate:
-        print(f"  REJECTED: top-1 < {0.99} — the model is not recognizably itself "
-              "(holds < 99% of the reference). Not a valid submission; no reward.")
+        print(f"  REJECTED: top-1 < {0.99} or KL above bound — not recognizably itself "
+              f"(needs top-1 >= {0.99} AND KL <= {0.20}). Not a valid submission; no reward.")
         # Still write a receipt so the attempt is on record, but it holds no crown.
         size_bytes = Path(args.model_file).stat().st_size
         receipt = build_receipt(recipe, fidelity, size_bytes, args.epoch, num_params=args.num_params)

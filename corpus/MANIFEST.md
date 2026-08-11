@@ -33,7 +33,7 @@ top-1 match rate near 0.99 is ~0.2% — cleanly separating an accepted recipe
 
 **Pinning:** the production corpus is pinned by its sha256 (recorded in every
 receipt) and pulled pod-side; the exact text need not live in the repo. The
-reference artifact stores only each sampled position's top-1 token, so it stays
+reference artifact stores each sampled position's top-k log-probs, so it stays
 small even for a large corpus.
 
 ## Why public (no secrecy machinery)
@@ -48,14 +48,31 @@ small even for a large corpus.
 
 ## References
 
-- **Nikolić, Zadeh, Torres, Moshovos, *"Displacement Is Not Direction: Evaluating
-  Fidelity Metrics for Quantized LLM Deployment"*, arXiv:2606.19558 (2026).**
-  Shows that *every* distributional fidelity metric — KLD, perplexity, **and
-  top-1 agreement alike** — loses its correlation with downstream benchmark
-  quality inside the near-baseline "silent zone" (its collapse is metric-invariant;
-  e.g. top-1 full-cohort ρ≈+0.70 → silent-zone ρ≈0). In their cohort the silent
-  zone spans Q8_0 down through Q4_K_M (composite ~0.69–0.70), with Q2_K_L the
-  lossy boundary (~0.635).
+The gate uses the two metrics production serving stacks already trust, so we
+build on the field rather than claim a novel metric:
+
+- **Top-1 agreement + KL divergence vs the reference model** is the standard
+  fidelity signal. sparkinfer's SN74 eval gates on exactly this pair
+  (`top-1 ≥ 0.90` AND `KL ≤ 0.20` vs llama.cpp), and providers such as
+  Fireworks and most GGUF serving tools treat KL as the primary quality
+  signal. llama.cpp's community converged on "KL + answer-flip rate vs FP16"
+  as more informative than perplexity.
+
+- **Helcig, Kurtic, Alistarh, *"Statistically-Lossless Quantization of Large
+  Language Models"*, arXiv:2605.02404 (2026)** — formalizes **EAR (Expected
+  Acceptance Rate)** = token-agreement probability between the original and
+  quantized model, explicitly framing "EAR ≥ 0.99 means 99% agreement." This
+  is the same top-1 agreement we use as the primary metric, open-sourced at
+  `github.com/IST-DASLab/SLQ`. Supporting citation, not the anchor.
+
+- **Nikolić, Zadeh, Torres, Moshovos, *"Displacement Is Not Direction:
+  Evaluating Fidelity Metrics for Quantized LLM Deployment"*, arXiv:2606.19558
+  (2026).** Shows that *every* distributional fidelity metric — KLD, perplexity,
+  **and top-1 agreement alike** — loses its correlation with downstream
+  benchmark quality inside the near-baseline "silent zone" (the collapse is
+  metric-invariant; e.g. top-1 full-cohort ρ≈+0.70 → silent-zone ρ≈0). In their
+  cohort the silent zone spans Q8_0 down through Q4_K_M (composite ~0.69–0.70),
+  with Q2_K_L the lossy boundary (~0.635).
 
   This supports Keg in two ways. First, because fidelity can no longer *rank*
   near-lossless quants by quality once they're accepted, the only meaningful
@@ -63,8 +80,6 @@ small even for a large corpus.
   races on ("smallest faithful wins"). Second, our ≥99% top-1 gate coincides
   with the silent-zone boundary: it admits the near-lossless cluster (Q4→Q8)
   and rejects the lossy tier (Q2-class), which is the desired behavior. Keg
-  uses top-1 rather than KLD for the gate because it is a simpler, direct
-  measure of behavioral match (argmax flips) — not because it escapes the
-  silent zone (it doesn't); Keg does not rank within the zone, so the collapse
-  is irrelevant to it.
+  does not rank within the zone, so the collapse is irrelevant to its gate.
+
 

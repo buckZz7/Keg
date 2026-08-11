@@ -13,7 +13,7 @@ import subprocess
 import time
 from typing import Any, Dict, Optional
 
-from .recipe import Recipe
+from .recipe import Recipe, accepted
 
 
 def _box_fingerprint() -> str:
@@ -55,13 +55,15 @@ def build_receipt(
         "recipe": recipe.model_dump(),
         "recipe_fingerprint": recipe.fingerprint(),
         "fidelity": fidelity,
-        "accepted": bool(fidelity.get("top1_match", 0) >= 0.99),
+        "accepted": accepted(fidelity.get("top1_match", 0),
+                             fidelity.get("kl_mean")),
         "size": {
             "size_bytes": size_bytes,
             "size_gb": round(size_gb, 3),
             "bpw": round(bpw, 3) if bpw is not None else None,
         },
-        "gate_passed": bool(fidelity.get("top1_match", 0) >= 0.99),
+        "gate_passed": accepted(fidelity.get("top1_match", 0),
+                                fidelity.get("kl_mean")),
         "ts": time.time(),
     }
     if crown is not None:
