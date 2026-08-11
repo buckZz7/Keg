@@ -29,18 +29,22 @@ sed -i "s/<model-family>/$L/g" "$LANE/README.md"
 cat > "$LANE/reference/MANIFEST.md" <<'EOF'
 # Lane reference — <model-family>
 
-The lane's yardstick: the model's own next-token distributions, generated once
-from the **BF16 weights** over a fixed held-out corpus, hash-bound, and
-house-held.
+The lane's yardstick: the model's own next-token behavior, generated once
+from the **BF16 weights** over a fixed set of positions sampled from the
+**public corpus**. Anyone can re-derive it by running the model over the same
+corpus.
 
-- `reference.json` — the artifact (prompts keyed by hash; text never in repo).
+- `reference.json` — the artifact, storing only each sampled position's top-1
+  token. The corpus is public and pinned by its sha256 (see corpus/MANIFEST.md).
 - `reference.sha256` — the artifact's hash, bound into every receipt.
 
-**Immutability:** the reference never changes while the lane is live. Any
-change invalidates every prior receipt.
+**Immutability:** the reference never changes while the lane's submissions are
+live. Any change invalidates every prior receipt. The ≥99% bar is set by a
+calibration ladder on the box, not assumed.
 
 > **Status: pending house generation.** Produce the artifact from the real
-> BF16 weights on the box; the scaffold does not fabricate it.
+> BF16 weights over the production corpus on the box; the scaffold does not
+> fabricate it.
 EOF
 
 cat > "$LANE/board.md" <<'EOF'

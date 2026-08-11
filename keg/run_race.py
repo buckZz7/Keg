@@ -73,8 +73,8 @@ def main() -> int:
     print("gate: fidelity vs stored BF16 reference ...")
     fidelity = measure_vs_reference(args.reference_artifact, args.submission_url)
     ok_gate = accepted(fidelity.get("top1_match", 0))
-    print(f"  top1_match={fidelity.get('top1_match'):.3f} kl_mean={fidelity.get('kl_mean'):.4f} "
-          f"kl_p999={fidelity.get('kl_p999'):.4f} (n={fidelity.get('n')})")
+    print(f"  top1_match={fidelity.get('top1_match'):.3f} (n={fidelity.get('n')} samples, "
+          f"corpus_sha={fidelity.get('corpus_sha256')})")
 
     if not ok_gate:
         print(f"  REJECTED: top-1 < {0.99} — the model is not recognizably itself "

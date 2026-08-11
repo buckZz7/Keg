@@ -1,0 +1,91 @@
+The history of navigation begins with the earliest civilizations, where
+In the nineteenth century, the industrial revolution transformed the
+The physics of light has occupied scientists since the age of Newton,
+A recipe is only as good as its ingredients, and the same is true of
+When the first telegraph lines crossed the continent, messages that
+The economics of scale explain why large factories replaced workshops
+Land, water, wind, and fire are the four classical elements of nature,
+The invention of the printing press changed the economics of knowledge
+In computer science, a cache is a small, fast memory that holds
+The migration patterns of monarch butterflies span three generations,
+Weather forecasting depends on large networks of observing stations,
+The periodic table organizes elements by their atomic structure and
+Algebra began as a set of rules for solving equations that date to
+The human heart beats roughly one hundred thousand times each day,
+Sound travels through air at a speed that depends on temperature and
+A telescope gathers more light than the unaided eye and resolves
+Photosynthesis converts sunlight into chemical energy within leaves,
+The Roman aqueducts carried water over long distances using gravity,
+Electric current flows when free electrons drift through a conductor,
+Erosion slowly reshapes mountains over millions of years of rainfall,
+The nervous system transmits signals along neurons at remarkable speed,
+Currency evolved from barter to standardized coins and then to paper,
+A glacier moves under its own weight, grinding the rock beneath it,
+The stratosphere contains the ozone layer that shields the surface,
+Bees communicate the location of nectar through a waggle dance, and
+The invention of zero changed mathematics more than any other symbol,
+Fossils preserve the remains of ancient organisms within sedimentary,
+The tides rise and fall because the moon pulls on the world's oceans,
+A compiler translates a high-level program into machine instructions,
+The constitution of many nations begins with a preamble declaring its
+Metals conduct heat and electricity better than nonmetals in general,
+The atmosphere thins with altitude until it gradually merges with space,
+A vaccine teaches the immune system to recognize a pathogen before it
+The Doppler effect shifts the pitch of a sound as its source moves,
+Chess grandmasters develop position through the opening phase, then
+The seasons arise because the axis of the planet is tilted toward,
+Paper is manufactured from cellulose fibers pressed into thin sheets,
+A database stores related information in tables that can be queried,
+The Amazon river carries more water than any other river on the planet,
+Neural networks learn by adjusting weights to reduce their error and
+The Renaissance revived classical learning across much of Europe, and
+Bacteria are single-celled organisms that reproduce by simple division,
+The stock market prices reflect the collective expectations of traders,
+An algorithm must terminate with a correct answer for every valid input,
+Lightning discharges a huge electrical potential between cloud and ground,
+The kidney filters waste from the blood while balancing water and salt,
+Pirates of the classical era plied trade routes through the Mediterranean,
+A logarithm converts multiplication into addition, easing computation,
+The moon keeps the same face toward the earth because of tidal locking,
+Fermentation converts sugar into alcohol in the absence of oxygen, and
+Railways shrank travel time and knit distant regions into one market,
+The immune system remembers a pathogen so a later infection is milder,
+Thermodynamics describes how energy moves and transforms within a system,
+A cipher maps a readable message into an unreadable one using a key,
+Corals build vast reefs from the skeletons of tiny polyps over centuries,
+The printing of books lowered their cost and widened the reading public,
+Osmosis moves water across a membrane toward the higher solute side,
+A vector in physics has both a magnitude and a direction in space,
+The guillotine became a symbol of revolutionary France's swift justice,
+Recursion defines a function in terms of itself until a base case halts,
+Glaciers lock up much of the world's fresh water in polar ice sheets,
+The orchestra balances strings, woodwinds, brass, and percussion, each,
+Pollen fertilizes a flower's ovule, leading to the development of seed,
+A checksum detects accidental changes in a block of transmitted data,
+The silk road linked China with the Mediterranean through a web of routes,
+An electromagnet strengthens when more current flows through its coil,
+The novel rose to prominence in the eighteenth century as a new form,
+Respiration releases energy from glucose using oxygen in living cells,
+A pivot table summarizes a large dataset into a compact table of totals,
+The stars of a constellation appear close together only from the earth,
+Enzymes lower the activation energy of reactions inside living organisms,
+A deadlock occurs when two processes each wait on a lock the other holds,
+The polder reclaimed farmland from the sea in the low countries, using,
+Metal fatigue causes failures long before the material yields entirely,
+The telegraph encoded messages as pulses that crossed wires at speed,
+An eclipse occurs when one celestial body passes into the shadow of another,
+Petroleum formed from ancient marine organisms buried under sediment, and
+A stack processes items in a last-in, first-out order, like a pile of plates,
+The monsoon drives a seasonal reversal of wind that brings torrential rain,
+Quarks bind together to form protons and neutrons within the atomic nucleus,
+A ledger records every transaction so the balance can always be traced back,
+The gothic cathedrals of Europe used flying buttresses to carry their weight,
+Diffusion spreads molecules from high to low concentration until balanced,
+An index in a database accelerates lookups at the cost of extra storage,
+The equator divides the planet into the northern and southern hemispheres,
+A heuristic sacrifices an optimal guarantee for a practical, fast solution,
+Smelting extracts metal from ore by heating it in the presence of charcoal,
+The spectrum of a star reveals which elements it contains by their lines,
+A semaphore coordinates access to a shared resource between competing threads,
+The plankton at the base of the ocean food web supports nearly all marine life,
+The scientific method tests a hypothesis through controlled, repeatable trials,

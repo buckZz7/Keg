@@ -1,21 +1,23 @@
 # Keg — Rules
 
-The smallest recipe that still holds the model's behavior wins. A recipe is
-accepted — and competes — only if it holds **≥99%** of the model's true
-behavior. Everything is measured, nothing is claimed.
+The smallest recipe that still *is* the model wins. A recipe is accepted — and
+competes — only if it holds **≥99%** of the model's true behavior. Everything
+is measured, nothing is claimed.
 
-## The reference
+## The reference (the truth, public and re-derivable)
 
-Every recipe is measured against the model's own next-token distributions,
-generated once from the 16-bit (BF16) weights over a fixed held-out corpus,
-stored as a hash-bound artifact.
+Every recipe is measured against **the model's own next-token behavior** —
+generated once from the 16-bit (BF16) weights, over a fixed set of positions
+sampled from a **public, diverse, versioned corpus**. Anyone can re-derive the
+reference by running the model over the same corpus.
 
-- **Immutable.** The reference never changes while a lane is live; a change
-  invalidates every prior receipt.
-- **Non-trainable.** It is a property of the weights, not a task set.
-- **Self-authenticating.** Corpus and reference are hash-bound; the corpus text
-  is house-held and never appears in the repo. Receipts bind to both hashes.
-- **No LLM in the loop.** Fidelity is computed from token distributions, not
+- **Public by design.** The corpus is open and hash-bound; the reference
+  artifact stores only each sampled position's top-1 token. No sealed corpus,
+  no house authority — trustlessness comes from openness, not secrecy.
+- **Deterministic.** The sampled positions are a pure function of the corpus
+  (seeded by its hash), so the reference and every submission measure the same
+  points. Repro­ducible by anyone.
+- **No LLM in the loop.** Fidelity is computed from token predictions, not
   judged by a model.
 
 ## The submission (a recipe)
@@ -27,9 +29,13 @@ the real file, never from the miner's word.
 
 ## The gate — acceptance
 
-Fidelity = top-1 token match (+ KL) of the recipe's output distribution vs the
-reference, over the held-out corpus. Deterministic. **A recipe is accepted only
-if it holds ≥0.99 top-1**; below that it is rejected.
+Fidelity = **top-1 next-token agreement** of the recipe vs the reference, over
+the sampled positions. Deterministic. **A recipe is accepted only if it holds
+≥0.99 top-1**; below that it is rejected.
+
+The threshold is **calibrated by a ladder** — on a new model the house first
+measures where the known quants (Q8 → Q2) land against the reference, then sets
+the bar from data, not by fiat.
 
 ## The score — size
 
@@ -40,9 +46,9 @@ Smaller is better.
 
 A challenger takes a lane's crown **only if it is smaller than the incumbent
 king AND accepted (≥0.99 top-1)**. A smaller-but-lossier recipe is rejected, not
-rewarded. Both sides must share the same reference artifact and corpus version,
-else the crown holds. There is no seed: the first accepted recipe establishes
-the crown; anyone smaller takes it.
+rewarded. Both sides must share the same corpus and reference, else the crown
+holds. There is no seed: the first accepted recipe establishes the crown;
+anyone smaller takes it.
 
 ## Rewards
 
@@ -53,8 +59,16 @@ lane's Rewards table — no new machinery.
 ## Receipts
 
 Every run produces one receipt: hash-bound (sha256 over all fields), replayable,
-valid only against the current reference set. It records the measured fidelity,
-the house-measured size, the box fingerprint, and the corpus + reference hashes.
+valid only against the current reference. It records the measured fidelity, the
+house-measured size, the corpus + reference hashes, and the box fingerprint.
 **Receipts are the source of truth for the board.** A receipt that doesn't
-replay is not a receipt. Rejected attempts get a receipt too, so every run is on
-record.
+replay is not a receipt. Rejected attempts get a receipt too.
+
+## Why this isn't gamed
+
+- **Breadth kills calibration.** The corpus is broad and diverse; calibrating a
+  quant to a broad corpus just makes a generally-better quant — the honest
+  behavior. Narrow-corpus overfitting is bounded.
+- **The size metric kills memorization.** Encoding thousands of diverse
+  positions into a recipe costs size, which loses the race.
+- **Public = verifiable.** Anyone re-derives the reference and checks a receipt.
