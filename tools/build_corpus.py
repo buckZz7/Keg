@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import random
 import re
 import time
@@ -33,6 +34,15 @@ WIKI_TOPICS = [
     "Light", "Photosynthesis", "Gravity", "Telegraph", "Immune system",
     "Steam engine", "Telescope", "Honey bee", "Renaissance", "Printing press",
 ]
+
+# Multilingual component — glimmer is trained on 100+ languages, so the corpus
+# must cover non-English fidelity. Common articles with translations across
+# these wikis; one batched request per language keeps request count low.
+MULTI_LANGS = ["de", "fr", "es", "pt", "it", "nl", "ru", "pl", "uk", "ar",
+               "fa", "tr", "he", "hi", "bn", "zh", "ja", "ko", "vi", "th",
+               "id", "sw"]
+MULTI_TITLES = ["Science", "History", "Mathematics", "Earth", "Language",
+                "Sun", "Water", "Human", "Philosophy", "Music", "Technology"]
 
 ARXIV_CATS = ["cs.CL", "cs.LG", "cs.CV", "cs.SE", "math.NA"]
 
@@ -107,6 +117,30 @@ def wiki_docs() -> list[str]:
     return docs
 
 
+def multilingual_wiki_docs() -> list[str]:
+    """Non-English Wikipedia intros (multilingual fidelity for glimmer)."""
+    docs = []
+    for lang in MULTI_LANGS:
+        titles = "|".join(requests.utils.quote(t) for t in MULTI_TITLES)
+        url = (f"https://{lang}.wikipedia.org/w/api.php?action=query&format=json"
+               f"&prop=extracts&explaintext=1&exintro=1&redirects=1&titles={titles}")
+        data = fetch(url, retries=4)  # wikis rate-limit; be patient
+        if not data:
+            continue
+        try:
+            pages = json.loads(data)["query"]["pages"]
+        except Exception:
+            continue
+        n = 0
+        for page in pages.values():
+            d = keep_doc(page.get("extract", ""), hi=2200)
+            if d:
+                docs.append(d); n += 1
+        print(f"  wiki/{lang}: {n} docs")
+        time.sleep(1.5)
+    return docs
+
+
 def arxiv_docs() -> list[str]:
     docs = []
     for cat in ARXIV_CATS:
@@ -160,10 +194,11 @@ def main() -> int:
     ap.add_argument("--out", default="corpus/production.txt")
     args = ap.parse_args()
 
-    print("building production corpus (prose + knowledge + technical + code) ...")
+    print("building production corpus (prose + knowledge + technical + code + multilingual) ...")
     docs = []
     docs += gutenberg_docs()
     docs += wiki_docs()
+    docs += multilingual_wiki_docs()
     docs += arxiv_docs()
     docs += code_files()
 

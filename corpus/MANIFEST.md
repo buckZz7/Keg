@@ -22,14 +22,17 @@ a multi-domain, public-domain mix:
 - **Prose** — 4 public-domain books from Project Gutenberg (Austen, Melville,
   Doyle).
 - **Knowledge** — Wikipedia article intros (CC BY-SA).
+- **Multilingual** — common-article intros from ~21 non-English Wikipedias
+  (Western, Slavic, Middle East, South/East/Southeast Asian, African), since
+  glimmer is trained on 100+ languages.
 - **Technical** — 200 recent arXiv abstracts across 5 categories (cs.CL, cs.LG,
   cs.CV, cs.SE, math.NA).
 - **Code** — real source files with permissive licenses (MIT/BSD/Apache-2.0),
   chunked into code documents: Python (requests, flask), JS (express), Go
   (gorilla/mux), Rust (serde_json). Covers glimmer's code capability.
 
-**Stats (current build):** ~5,674 documents, ~2.81M chars (~703K tokens), and
-~40,000 candidate next-token positions at the 64-char stride — far above the
+**Stats (current build):** ~5,785 documents, ~2.90M chars (~725K tokens), and
+~41,700 candidate next-token positions at the 64-char stride — far above the
 ~5,000–10,000 we need. The race samples a deterministic subset (pure function
 of the corpus hash), so the reference and every submission measure the same
 points. With N≈5,000 the standard error on a top-1 rate near 0.99 is ~0.2% —
