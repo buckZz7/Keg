@@ -24,6 +24,42 @@ from keg.fidelity import measure_vs_reference  # noqa: E402
 from keg.receipt import build_receipt, verify_receipt  # noqa: E402
 from keg.recipe import Recipe, accepted  # noqa: E402
 
+# Container formats the house can load, serve, and reproduce. GGUF-only for
+# launch (one runtime, airtight verification); extend as runtimes are added.
+SUPPORTED_FORMATS = {"gguf"}
+_GGUF_MAGIC = b"GGUF"
+# Coarse floor: a real quant of a raced model is tens of GB; an answer-table
+# memorizer is < 1 MB. The GGUF magic + serve-check below are authoritative.
+_MIN_MODEL_BYTES = 1 * 1024 * 1024
+
+
+def validate_model_file(path: str, fmt: str) -> str:
+    """Reject anything that isn't a real model file of the lane's architecture.
+
+    This is the anti-memorization gate: a lookup table / answer store is NOT a
+    loadable model, so it fails here before any fidelity is measured.
+      1. the container format is supported (currently gguf);
+      2. the file exists and is plausibly a real model (not an answer table);
+      3. the GGUF container header is valid.
+    The house MUST ALSO load and serve the file with the standard runtime
+    (llama.cpp) as the model — a file that won't load/serve as the model is
+    not a submission.
+    """
+    if fmt.lower() not in SUPPORTED_FORMATS:
+        return (f"unsupported format '{fmt}' "
+                f"(supported: {', '.join(sorted(SUPPORTED_FORMATS))})")
+    p = Path(path)
+    if not p.exists():
+        return f"model file not found: {path}"
+    if p.stat().st_size < _MIN_MODEL_BYTES:
+        return (f"model file implausibly small ({p.stat().st_size} bytes) — "
+                f"not a real model (answer tables are rejected here)")
+    with open(p, "rb") as f:
+        magic = f.read(4)
+    if magic != _GGUF_MAGIC:
+        return f"not a valid GGUF file (magic {magic!r}) — not a loadable model"
+    return ""
+
 
 def _king(receipt_path: str) -> dict:
     with open(receipt_path) as f:
@@ -39,8 +75,8 @@ def crown_decision(challenger: dict, king: dict | None) -> tuple[bool, str]:
     """
     cf = challenger.get("fidelity", {})
     cs = challenger.get("size", {})
-    if not accepted(cf.get("top1_match", 0)):
-        return False, "below the acceptance bar (needs >= 0.99 top-1)"
+    if not accepted(cf.get("top1_match", 0), cf.get("kl_mean")):
+        return False, "below the acceptance bar (needs >= 0.99 top-1, KL within bound)"
     if king is None:
         return True, ""
     if (cf.get("corpus_version") != king["fidelity"].get("corpus_version")
@@ -65,6 +101,16 @@ def main() -> int:
     args = ap.parse_args()
 
     recipe = Recipe(**json.loads(Path(args.recipe).read_text()))
+
+    # Anti-memorization gate: a submission must be a REAL, loadable model file
+    # of the lane's architecture. A lookup table / answer store is not a model
+    # and is rejected before any fidelity is measured.
+    err = validate_model_file(args.model_file, recipe.format)
+    if err:
+        print(f"NOT A SUBMISSION: {err}")
+        print("A recipe must be the actual model file, loadable and servable "
+              "as the model (llama.cpp). An answer store is not a model.")
+        return 2
 
     # House measures the TRUE model footprint — a miner's claim is advisory.
     size_bytes = Path(args.model_file).stat().st_size

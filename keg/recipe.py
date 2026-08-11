@@ -28,7 +28,7 @@ class Recipe(BaseModel):
     model_file: str = Field(description="Model filename (GGUF / NVFP4 / ...)")
     model_sha256: str = Field(description="SHA-256 of the model file")
     quant: str = Field(description="Format / quant level, e.g. Q6_K, Q8_0, NVFP4, MXFP4")
-    format: str = Field(default="gguf", description="Container: gguf, nvfp4, mxfp4, fp8, safetensors")
+    format: str = Field(default="gguf", description="Container format. GGUF-only for launch (one runtime the house can load/serve/reproduce); other formats (fp8, nvfp4, mxfp4, safetensors) can be added as their runtimes + verification are.")
     runtime: str = Field(default="llama.cpp", description="Runtime that produced/serves it")
     runtime_version: str = Field(default="", description="Exact runtime version/commit")
     note: str = Field(default="", description="Free-form miner note (no weight in scoring)")

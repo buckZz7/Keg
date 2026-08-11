@@ -24,9 +24,15 @@ reference by running the model over the same corpus.
 ## The submission (a recipe)
 
 A recipe is the exact model file (by sha256), its format/quant, and the runtime
-that produced it. A recipe the house cannot reproduce is not a submission. The
-race metric is **size** — the model's footprint — measured by the house from
-the real file, never from the miner's word.
+that produced it. The race metric is **size** — the model's footprint —
+measured by the house from the real file, never from the miner's word.
+
+**A recipe must be a real, loadable model file of the lane's architecture.**
+The house rejects anything it cannot serve as the model (currently **GGUF**,
+loaded with llama.cpp). This is the anti-memorization gate: an answer store /
+lookup table that merely replays the corpus is **not a model**, so it is
+rejected before any fidelity is measured. A recipe the house cannot reproduce
+is not a submission.
 
 ## The gate — acceptance
 
@@ -86,6 +92,9 @@ replay is not a receipt. Rejected attempts get a receipt too.
 - **Breadth kills calibration.** The corpus is broad and diverse; calibrating a
   quant to a broad corpus just makes a generally-better quant — the honest
   behavior. Narrow-corpus overfitting is bounded.
-- **The size metric kills memorization.** Encoding thousands of diverse
-  positions into a recipe costs size, which loses the race.
+- **A recipe must be a real model, not an answer store.** The anti-memorization
+  gate rejects any submission that isn't a loadable model file of the lane's
+  architecture — a lookup table replaying the corpus is not a model and can't
+  win on size. Memorizing a broad corpus is impossible anyway: encoding
+  thousands of diverse positions costs size, which loses the race.
 - **Public = verifiable.** Anyone re-derives the reference and checks a receipt.
