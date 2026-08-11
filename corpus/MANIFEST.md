@@ -13,28 +13,34 @@ A small, varied dev/test corpus used by the machinery and the simulation. It is
 offline. One line = one document; next-token positions are sampled across all
 documents.
 
-## Production corpus
+## Production corpus (`production.txt`)
 
-The production reference must be measured over a **larger, public-domain,
-multi-domain** corpus so the top-1 gate resolves to well under 1% error. Candidates:
+The production corpus is **built** (reproducible via `tools/build_corpus.py`) and
+public — anyone can re-derive the reference by running the model over it. It is
+a multi-domain, public-domain mix:
 
-- **Common Corpus** (Pleias) — the largest truly open public-domain dataset
-  (500B words; English 180B; multilingual; reasoning-rich books). Ideal: fully
-  open and auditable.
-- **RedPajama / SlimPajama** — open reproduction of LLaMA training data:
-  Wikipedia + GitHub (code) + arXiv + StackExchange + books + news.
-- For glimmer-30b (multimodal, code-capable) include code and structured text
-  alongside prose.
+- **Prose** — 4 public-domain books from Project Gutenberg (Austen, Melville,
+  Doyle).
+- **Knowledge** — Wikipedia article intros (CC BY-SA).
+- **Technical** — 200 recent arXiv abstracts across 5 categories (cs.CL, cs.LG,
+  cs.CV, cs.SE, math.NA).
 
-**Size target:** ~100k–500k tokens, sampled at a stride to yield on the order
-of **3,000–10,000 next-token positions**. With N≈5,000, the standard error on a
-top-1 match rate near 0.99 is ~0.2% — cleanly separating an accepted recipe
-(≥99%) from a rejected one (~97%).
+**Stats (current build):** ~5,268 documents, ~2.68M chars (~670K tokens), and
+~38,000 candidate next-token positions at the 64-char stride — far above the
+~5,000–10,000 we need. The race samples a deterministic subset (pure function
+of the corpus hash), so the reference and every submission measure the same
+points. With N≈5,000 the standard error on a top-1 rate near 0.99 is ~0.2% —
+cleanly separating accepted (≥99%) from rejected (~97%).
 
-**Pinning:** the production corpus is pinned by its sha256 (recorded in every
-receipt) and pulled pod-side; the exact text need not live in the repo. The
+**Pinning:** the corpus is pinned by its sha256 (recorded in every receipt).
+Run the house measurement with `KEG_CORPUS_FILE=corpus/production.txt`. The
 reference artifact stores each sampled position's top-k log-probs, so it stays
 small even for a large corpus.
+
+**Known gap:** the mix is prose/knowledge/technical but has **no code** yet —
+glimmer is code-capable, so a code component (permissively-licensed, e.g.
+public-domain or MIT source) should be added to the corpus before the first
+production reference is fixed. `tools/build_corpus.py` is the place to add it.
 
 ## Why public (no secrecy machinery)
 
