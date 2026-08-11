@@ -37,6 +37,12 @@ The threshold is **calibrated by a ladder** — on a new model the house first
 measures where the known quants (Q8 → Q2) land against the reference, then sets
 the bar from data, not by fiat.
 
+The ≥99% bar tracks the near-baseline "silent zone" of quantization fidelity —
+the cluster (Q4_K_M → Q8) where distributional metrics lose the power to *rank*
+quality. Keg does not rank within that zone; it gates (≥99% or not) and then
+races by size, which is exactly the right discriminator there.
+(*"Displacement Is Not Direction," arXiv:2606.19558 — see corpus/MANIFEST.md.*)
+
 ## The score — size
 
 The house measures the model file's footprint in bytes (and bpw, normalized).

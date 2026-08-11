@@ -45,3 +45,26 @@ small even for a large corpus.
   minor"; a published example moved WikiText-2 PPL only 6.92→6.83).
 - **The size metric punishes the residual attack (memorization)** — encoding
   thousands of diverse positions into a recipe costs size, which loses the race.
+
+## References
+
+- **Nikolić, Zadeh, Torres, Moshovos, *"Displacement Is Not Direction: Evaluating
+  Fidelity Metrics for Quantized LLM Deployment"*, arXiv:2606.19558 (2026).**
+  Shows that *every* distributional fidelity metric — KLD, perplexity, **and
+  top-1 agreement alike** — loses its correlation with downstream benchmark
+  quality inside the near-baseline "silent zone" (its collapse is metric-invariant;
+  e.g. top-1 full-cohort ρ≈+0.70 → silent-zone ρ≈0). In their cohort the silent
+  zone spans Q8_0 down through Q4_K_M (composite ~0.69–0.70), with Q2_K_L the
+  lossy boundary (~0.635).
+
+  This supports Keg in two ways. First, because fidelity can no longer *rank*
+  near-lossless quants by quality once they're accepted, the only meaningful
+  discriminator among accepted recipes is **size** — which is exactly what Keg
+  races on ("smallest faithful wins"). Second, our ≥99% top-1 gate coincides
+  with the silent-zone boundary: it admits the near-lossless cluster (Q4→Q8)
+  and rejects the lossy tier (Q2-class), which is the desired behavior. Keg
+  uses top-1 rather than KLD for the gate because it is a simpler, direct
+  measure of behavioral match (argmax flips) — not because it escapes the
+  silent zone (it doesn't); Keg does not rank within the zone, so the collapse
+  is irrelevant to it.
+
