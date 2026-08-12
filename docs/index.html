@@ -255,7 +255,7 @@ async function load(){
   }
 
   // leaderboard table
-  let t = `<table><thead><tr><th>Quant</th><th>Size</th><th>KL (worst comp)</th><th>Top-1</th><th>Verdict</th><th>Source</th><th>Receipt</th></tr></thead><tbody>`;
+  let t = `<table><thead><tr><th>Quant</th><th>Size</th><th>KL (worst comp)</th><th>Top-1</th><th>TPS</th><th>Verdict</th><th>Source</th><th>Receipt</th></tr></thead><tbody>`;
   for(const r of (data.leaderboard||[])){
     const crown = data.crown && r.quant===data.crown.quant;
     const v = r.accepted ? (crown?`<span class="tag crown">crown</span>`:`<span class="tag ok">accepted</span>`)
@@ -263,9 +263,10 @@ async function load(){
     const rec = r.receipt ? `<a href="${r.receipt}" class="mono" style="font-size:12px">${r.receipt}</a>` : "—";
     const src = r.source ? `<a href="${r.source}" target="_blank" rel="noopener" class="mono" style="font-size:12px">fetch</a>` : "—";
     const kl = r.kl_max_component!=null ? `<span class="mono">${r.kl_max_component.toFixed(4)}</span>` : "—";
+    const tps = r.tps!=null ? `<span class="mono">${r.tps}</span>` : "—";
     t += `<tr><td class="mono">${r.quant}</td><td class="mono">${r.size_gb!=null?r.size_gb+" GB":"—"}</td>`+
          `<td>${kl}</td><td class="mono">${r.top1!=null?(r.top1*100).toFixed(1)+"%":"—"}</td>`+
-         `<td>${v}</td><td>${src}</td><td>${rec}</td></tr>`;
+         `<td>${tps}</td><td>${v}</td><td>${src}</td><td>${rec}</td></tr>`;
   }
   t += `</tbody></table>`;
   el("board-body").innerHTML = t;

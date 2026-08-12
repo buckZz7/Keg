@@ -18,6 +18,7 @@
 #include <map>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include "llama.h"
 
 static std::vector<int> read_ints(const char * path) {
@@ -137,8 +138,11 @@ int main(int argc, char ** argv) {
     std::vector<float> row(n_vocab);
     std::vector<int> top_idx(top_k);
 
+    auto t0 = std::chrono::steady_clock::now();
+    long long total_tokens = 0;
     for (int win_start = 0; win_start < n_total; win_start += n_ctx) {
         int n = std::min(n_ctx, n_total - win_start);
+        total_tokens += n;
         llama_memory_clear(mem, true); // independent window: fresh context, pos 0..n-1
         batch.n_tokens = n;
         for (int i = 0; i < n; i++) {
@@ -183,6 +187,11 @@ int main(int argc, char ** argv) {
     }
     fprintf(out, "\n  },\n  \"n\": %d\n}\n", written);
     fclose(out);
+
+    auto t1 = std::chrono::steady_clock::now();
+    double secs = std::chrono::duration<double>(t1 - t0).count();
+    fprintf(stderr, "decode tps: %.1f (%lld tokens / %.1fs)\n",
+            total_tokens / (secs > 0 ? secs : 1.0), total_tokens, secs);
 
     llama_batch_free(batch);
     llama_free(ctx);

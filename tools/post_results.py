@@ -99,6 +99,7 @@ def main() -> int:
                 "kl_by_component": r.get("kl_by_component", {}),
             },
             r["size_bytes"], epoch=EPOCH,
+            tps=r.get("tps"),
         )
         # NOTE: do NOT mutate `rec` after build_receipt — the receipt_sha256 is
         # computed over the final dict, and any post-hoc change breaks replay.
@@ -112,6 +113,7 @@ def main() -> int:
             "size_gb": round(r["size_bytes"] / 1e9, 1),
             "top1": round(r["top1"], 4),
             "kl_max_component": round(r.get("kl_max_component", 0), 4),
+            "tps": r.get("tps"),
             "accepted": True,
             "receipt": f"{q.lower()}.receipt.json",
             # house-verified facts only: source (fetch + hash-checked) and the

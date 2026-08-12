@@ -38,6 +38,7 @@ def build_receipt(
     epoch: str,
     num_params: Optional[int] = None,
     crown: Optional[Dict[str, Any]] = None,
+    tps: Optional[float] = None,
 ) -> dict:
     """Assemble the receipt for a completed compression race run.
 
@@ -64,6 +65,7 @@ def build_receipt(
         },
         "gate_passed": accepted(fidelity.get("kl_mean"),
                                 fidelity.get("kl_max_component")),
+        "tps": tps,  # reported metric: decode tokens/sec on the house eval box (not gated)
         "ts": time.time(),
     }
     if crown is not None:
