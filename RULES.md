@@ -40,6 +40,17 @@ consumer hardware the benchmark is for.
 - **tps is measured on the eval box** and labeled with it, so the reported
   speed is relevant to the hardware the market runs — not a datacenter card.
 
+**Why a consumer card (e.g. the RTX 5090) is the eval box.** The 5090 — 32 GB
+GDDR7, ~1.8 TB/s memory bandwidth, ~$2k — is the practical ceiling of
+*single-card hardware people actually own*; beyond it you are in datacenter /
+workstation rental territory (A100/H100). A 32 GB card fits the entire
+quantization ladder of a 30B model (Q4 ≈16 GB → Q8 ≈30 GB), so the whole race of
+a lane is playable on the target hardware. And because decode is memory-
+bandwidth-bound, a 5090 tps is what a self-hoster genuinely gets — an A100 tps
+would overstate the market's real speed. The frontier this race rewards —
+"how small can I go and still hold the model" — is precisely what decides which
+VRAM tier a model fits, i.e. which card you need to buy.
+
 So: **reference on a big box (once), eval on a consumer card (always).** We are
 after the smallest recipe that is still the model *on hardware you can buy*.
 
