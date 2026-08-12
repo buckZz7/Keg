@@ -22,6 +22,27 @@ reference by running the model over the same corpus.
 - **No LLM in the loop.** Fidelity is computed from token predictions, not
   judged by a model.
 
+## Eval hardware — what we're after
+
+**Keg is for the models people actually run, on hardware they actually own.**
+The house reference is generated once on a big box that can hold the lane's
+BF16 weights (e.g. an A100) — that's just the calibration artifact, not the
+target. **Submissions are evaluated on a consumer card (e.g. a 5090)**, because
+the goal is compression that holds the model on the edge / self-hosted /
+consumer hardware the benchmark is for.
+
+- **The gate is hardware-independent.** Size is bytes; KL is the model's
+  next-token distribution, identical whichever GPU loads it (provided the box
+  reproduces the reference). The race's validity does not depend on the eval GPU.
+- **Reproduction is checked, not assumed.** Before an eval box is trusted, the
+  house re-runs the **self-check** (the reference vs itself → KL 0.0) on that
+  box. If it reproduces the stored reference, eval there is sound.
+- **tps is measured on the eval box** and labeled with it, so the reported
+  speed is relevant to the hardware the market runs — not a datacenter card.
+
+So: **reference on a big box (once), eval on a consumer card (always).** We are
+after the smallest recipe that is still the model *on hardware you can buy*.
+
 ## The submission (a recipe)
 
 A recipe is the exact model file (by sha256), its format/quant, and the runtime

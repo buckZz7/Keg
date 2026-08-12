@@ -20,7 +20,7 @@ model, no sealed corpus, no house authority.
 
 | Lane | Model | Current best (smallest accepted) |
 |---|---|---|
-| [glimmer-30b](lanes/glimmer-30b/) | Muse Glimmer 30B | — |
+| [glimmer-30b](lanes/glimmer-30b/) | Muse Glimmer 30B | UD-Q6_K_XL (26.3 GB) |
 
 ## How a lane works
 
@@ -33,9 +33,19 @@ model, no sealed corpus, no house authority.
 
 Full mechanism: [RULES.md](RULES.md)
 
+## What we're after
+
+Keg is for the models people actually run, on **hardware they actually own**.
+The reference is generated once on a big box (e.g. an A100, to hold the lane's
+BF16) — that's just the calibration artifact. **Submissions are evaluated on a
+consumer card (a 5090)** — the gate (size + KL) is hardware-independent, the box
+reproduces the reference (checked via self-check), and the reported tokens/sec is
+measured there so it's relevant to the hardware the market runs.
+
 ## Why this isn't a speed benchmark
 
 Raw speed is owned by the runtime incumbents (vLLM, sparkinfer). This benchmark
 is about *compression science* — quantization, calibration — which they don't
 optimize. It's the question every edge deployer asks: how small can I go and
-keep the model real?
+keep the model real? **tokens/sec is reported (not raced)** so the board shows
+the speed tradeoff, but the crown is won on size, not speed.
