@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from keg.recipe import Recipe, accepted  # noqa: E402
 from keg.receipt import build_receipt  # noqa: E402
 
-EPOCH = "2026-08-11"  # first real run
+EPOCH = "2026-08-12"  # single-pass long-mode ladder
 MODEL = "muse-glimmer-30b"
 RUNTIME = "llama.cpp"
 
@@ -66,9 +66,20 @@ def main() -> int:
           f"top1={ok[crown]['top1']:.4f}, kl={ok[crown]['kl']:.4f})")
 
     out.mkdir(parents=True, exist_ok=True)
+    # Preserve the reference metadata (e.g. single-pass method, self-check) from
+    # the existing board if present; else fall back to the reference artifact's
+    # own fields.
+    ref_meta = {}
+    if board_path.exists():
+        try:
+            ref_meta = json.loads(board_path.read_text()).get("reference", {})
+        except Exception:
+            ref_meta = {}
+    if not ref_meta:
+        ref_meta = artifact_meta(ref_path)
     board = {
         "lane": MODEL,
-        "reference": artifact_meta(ref_path),
+        "reference": ref_meta,
         "crown": {"quant": crown},
         "leaderboard": [],
         "receipts": [],
@@ -81,7 +92,12 @@ def main() -> int:
             quant=q, format="gguf", runtime=RUNTIME,
         )
         rec = build_receipt(
-            recipe, {"top1_match": r["top1"], "kl_mean": r["kl"]},
+            recipe, {
+                "top1_match": r["top1"],
+                "kl_mean": r["kl"],
+                "kl_max_component": r.get("kl_max_component"),
+                "kl_by_component": r.get("kl_by_component", {}),
+            },
             r["size_bytes"], epoch=EPOCH,
         )
         # NOTE: do NOT mutate `rec` after build_receipt — the receipt_sha256 is
