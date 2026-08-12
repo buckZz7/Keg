@@ -130,7 +130,7 @@
     <div class="statrow">
       <div class="stat"><div class="v" id="st-ref">—</div><div class="l">Reference</div></div>
       <div class="stat"><div class="v" id="st-n">—</div><div class="l">Probe positions</div></div>
-      <div class="stat"><div class="v" id="st-bar">≤ 0.1</div><div class="l">Gate (mean KL)</div></div>
+      <div class="stat"><div class="v" id="st-bar">≤ 0.1</div><div class="l">Gate (KL, per component)</div></div>
       <div class="stat"><div class="v" id="st-crown">—</div><div class="l">Current best</div></div>
     </div>
   </section>
@@ -139,11 +139,13 @@
     <h2>How it works</h2>
     <p class="sec-sub">A submission is a real, loadable model file. We serve it and measure
     the reference: KL divergence (primary) and top-1 agreement (reported).
-    A submission is accepted only if its mean KL stays within the bound, or it's
+    A submission is accepted only if its KL stays within the bound in every
+    component (prose, code, multilingual, technical) — gating on the worst, so a
+    quant can't hide by excelling on one kind of content. Anything else is
     rejected. Accepted submissions rank by size.</p>
     <div class="steps">
       <div class="step"><div class="n">01</div><div class="t">Submit</div><div class="d">A recipe pointing at an exact model file (byte-addressed by sha256).</div></div>
-      <div class="step"><div class="n">02</div><div class="t">Measure</div><div class="d">We serve it and check fidelity vs the BF16 reference over the public corpus.</div></div>
+      <div class="step"><div class="n">02</div><div class="t">Measure</div><div class="d">We check fidelity vs the BF16 reference in a single streaming pass over the public corpus.</div></div>
       <div class="step"><div class="n">03</div><div class="t">Accept</div><div class="d">Stays within the KL bound of the reference, or it's rejected. No tiers.</div></div>
       <div class="step"><div class="n">04</div><div class="t">Rank</div><div class="d">Accepted submissions order by size — the smallest leads the board.</div></div>
     </div>

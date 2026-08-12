@@ -1,12 +1,14 @@
 {
   "lane": "muse-glimmer-30b",
   "reference": {
-    "sha256": "d2c2ec7f571f17b8",
-    "corpus_sha256": "8f66ebe0d3967ed2",
+    "sha256": "e3f47fb78db36d8b",
+    "corpus_sha256": "757502cd9a63dddc",
     "corpus_version": 3,
-    "top_k": 32,
-    "n": 4998,
-    "generated": "2026-08-11"
+    "top_k": 1024,
+    "n": 4999,
+    "generated": "2026-08-12",
+    "method": "single-pass long-mode",
+    "self_check": {"top1": 1.0, "kl": 0.0}
   },
   "crown": null,
   "leaderboard": [],
