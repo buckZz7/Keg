@@ -1,0 +1,10 @@
+{
+  "model": "muse-glimmer-30b",
+  "model_file": "Muse-Glimmer-30B-UD-Q6_K_XL.gguf",
+  "model_sha256": "<sha256 of the EXACT model file you submit>",
+  "quant": "Q6_K",
+  "format": "gguf",
+  "runtime": "llama.cpp",
+  "runtime_version": "<llama.cpp commit you quantized with>",
+  "note": "model_sha256 must match the file byte-for-byte — the house verifies it and rejects anything else."
+}

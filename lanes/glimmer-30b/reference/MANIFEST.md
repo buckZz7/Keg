@@ -25,6 +25,14 @@ submissions are live; any change invalidates prior receipts. The ≥99% acceptan
 bar is set by a **calibration ladder** (measure Q8→Q2 against this reference on
 the box first), not assumed.
 
-> **Status: pending house generation.** The artifact is produced from the real
-> BF16 weights over the production corpus on the box; the scaffold does not
-> fabricate it.
+## Generation record (real)
+
+- **Date:** 2026-08-11
+- **Method:** BF16 glimmer-30b served via llama.cpp on an A100-80GB, probed over
+  the production corpus (`KEG_CORPUS_FILE=corpus/production.txt`).
+- **Artifact:** `reference.json` — sha256 `d2c2ec7f571f17b8` (of the file).
+- **Schema:** `keg/reference-v1` · **corpus_version:** 3 ·
+  **corpus_sha256:** `8f66ebe0d3967ed2` · **top_k:** 32 · **n:** 4,998
+- **Re-derivable:** run the BF16 weights over the same pinned corpus with the
+  same sampling (deterministic from the corpus hash) and the same top_k/n to
+  reproduce this artifact.

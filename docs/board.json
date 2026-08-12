@@ -1,0 +1,14 @@
+{
+  "lane": "muse-glimmer-30b",
+  "reference": {
+    "sha256": "d2c2ec7f571f17b8",
+    "corpus_sha256": "8f66ebe0d3967ed2",
+    "corpus_version": 3,
+    "top_k": 32,
+    "n": 4998,
+    "generated": "2026-08-11"
+  },
+  "crown": null,
+  "leaderboard": [],
+  "receipts": []
+}

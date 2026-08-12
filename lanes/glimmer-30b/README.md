@@ -14,8 +14,8 @@ The lane's reference is the model's own next-token behavior, generated once
 from the BF16 weights over the **public corpus** — open and re-derivable by
 anyone. See `reference/MANIFEST.md` and [corpus/](../../corpus/MANIFEST.md).
 The 16-bit weights need ~64 GB and do not fit a single 5090, so the reference
-is produced by a one-time CPU pass on a larger machine; it stays small because
-it stores each sampled position's top-k log-probs.
+is produced by a one-time pass on a box that can hold them (e.g. an A100-80GB);
+it stays small because it stores each sampled position's top-k log-probs.
 
 ## Board and rewards
 
