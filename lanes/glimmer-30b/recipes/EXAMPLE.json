@@ -6,5 +6,6 @@
   "format": "gguf",
   "runtime": "llama.cpp",
   "runtime_version": "<llama.cpp commit you quantized with>",
-  "note": "model_sha256 must match the file byte-for-byte — the house verifies it and rejects anything else."
+  "source": "<URL or repo path where the house fetches the file>",
+  "note": "model_sha256 must match the file byte-for-byte — the house fetches it from 'source', hashes it, and rejects on any mismatch."
 }
