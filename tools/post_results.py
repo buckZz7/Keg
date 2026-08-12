@@ -90,6 +90,8 @@ def main() -> int:
         recipe = Recipe(
             model=MODEL, model_file=r["file"], model_sha256=r["sha256"],
             quant=q, format="gguf", runtime=RUNTIME,
+            base=r.get("base", ""), calibration=r.get("calibration", ""),
+            command=r.get("command", ""), source=r.get("source", ""),
         )
         rec = build_receipt(
             recipe, {
@@ -111,8 +113,16 @@ def main() -> int:
             "quant": q,
             "size_gb": round(r["size_bytes"] / 1e9, 1),
             "top1": round(r["top1"], 4),
+            "kl_max_component": round(r.get("kl_max_component", 0), 4),
             "accepted": True,
             "receipt": f"{q.lower()}.receipt.json",
+            # the HOW + WHERE — advisory but bound into the receipt + shown here
+            "recipe": {
+                "base": r.get("base", ""),
+                "calibration": r.get("calibration", ""),
+                "command": r.get("command", ""),
+                "source": r.get("source", ""),
+            },
         })
         print(f"  wrote {q.lower()}.receipt.json")
 

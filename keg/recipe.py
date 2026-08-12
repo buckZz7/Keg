@@ -34,12 +34,13 @@ class Recipe(BaseModel):
     format: str = Field(default="gguf", description="Container format. GGUF-only for launch (one runtime the house can load/serve/reproduce); other formats (fp8, nvfp4, mxfp4, safetensors) can be added as their runtimes + verification are.")
     runtime: str = Field(default="llama.cpp", description="Runtime that produced/serves it")
     runtime_version: str = Field(default="", description="Exact runtime version/commit")
-    # The HOW — so the next miner can build on this exact recipe rather than
-    # start from scratch. Advisory (no weight in scoring) but bound into the
-    # receipt hash and visible on the board.
+    # The HOW + WHERE — so the next miner can build on / fetch this exact
+    # recipe rather than start from scratch. Advisory (no weight in scoring)
+    # but bound into the receipt hash and visible on the board.
     base: str = Field(default="", description="What it was quantized from, e.g. Muse-Glimmer-30B-BF16 or -Q8_0")
     calibration: str = Field(default="", description="Calibration corpus / imatrix used, e.g. unsloth imatrix or keg production.txt")
     command: str = Field(default="", description="Exact quantization command + tool + flags")
+    source: str = Field(default="", description="URL/repo where the actual model file lives (so others can fetch + run it)")
     note: str = Field(default="", description="Free-form miner note (no weight in scoring)")
 
     def fingerprint(self) -> str:
