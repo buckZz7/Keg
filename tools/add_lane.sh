@@ -39,8 +39,8 @@ corpus.
 - `reference.sha256` — the artifact's hash, bound into every receipt.
 
 **Immutability:** the reference never changes while the lane's submissions are
-live. Any change invalidates every prior receipt. The ≥99% bar is set by a
-calibration ladder on the box, not assumed.
+live. Any change invalidates every prior receipt. The KL bound is set by a
+calibration ladder on the box, anchored to the field's near-lossless range.
 
 > **Status: pending house generation.** Produce the artifact from the real
 > BF16 weights over the production corpus on the box; the scaffold does not
@@ -50,8 +50,9 @@ EOF
 cat > "$LANE/board.md" <<'EOF'
 # Board — <model-family>
 
-Receipts are the source of truth. Only accepted recipes (≥0.99 top-1 vs the
-lane's BF16 reference) appear here; rejected attempts are recorded under
+Receipts are the source of truth. Only accepted recipes (KL within the bound in
+every component vs the lane's BF16 reference) appear here; rejected attempts are
+recorded under
 `receipts/` but hold nothing.
 
 ## Rewards

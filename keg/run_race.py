@@ -8,7 +8,7 @@ usage: run_race.py <reference_artifact.json> <submission_url> --recipe recipe.js
 The gate (fidelity vs the stored BF16 model reference) is deterministic and
 involves no LLM. The race metric is SIZE — the house-measured footprint of
 the model file. The crown moves only if a challenger is SMALLER than the
-incumbent king AND accepted (>= 0.99 top-1): a smaller but lossier recipe
+incumbent king AND accepted (KL within the bound): a smaller but lossier recipe
 cannot take the crown.
 """
 from __future__ import annotations
@@ -70,7 +70,7 @@ def crown_decision(challenger: dict, king: dict | None) -> tuple[bool, str]:
     """The crown moves only if the challenger is SMALLER AND as faithful.
 
     Both must use the same reference artifact / corpus, else not comparable.
-    The challenger must be accepted (>= 0.99 top-1). Smaller-but-lossier does
+    The challenger must be accepted (KL within the bound). Smaller-but-lossier does
     not dethrone.
     """
     cf = challenger.get("fidelity", {})

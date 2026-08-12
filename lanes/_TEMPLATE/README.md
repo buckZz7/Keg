@@ -2,9 +2,9 @@
 
 The compression race for **<Model Name>** (<one-line description>).
 
-**The crown:** the smallest recipe that still holds **≥0.99 top-1** fidelity
-against the lane's BF16 reference. Only accepted (≥0.99) recipes compete. See
-the [rules](../../RULES.md).
+**The crown:** the smallest recipe that still holds the model's behavior — its
+KL stays within the bound in every component vs the model's BF16 reference.
+Only accepted recipes compete. See the [rules](../../RULES.md).
 
 ## The reference
 

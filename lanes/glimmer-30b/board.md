@@ -1,6 +1,7 @@
 # Board — glimmer-30b
 
-Receipts are the source of truth. Only accepted recipes (≥0.99 top-1 vs the
+Receipts are the source of truth. Only accepted recipes (KL within the bound in
+every component vs the reference)
 lane's BF16 reference) appear here; rejected attempts are recorded under
 `receipts/` but hold nothing.
 
