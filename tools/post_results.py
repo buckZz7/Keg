@@ -89,9 +89,7 @@ def main() -> int:
         r = ok[q]
         recipe = Recipe(
             model=MODEL, model_file=r["file"], model_sha256=r["sha256"],
-            quant=q, format="gguf", runtime=RUNTIME,
-            base=r.get("base", ""), calibration=r.get("calibration", ""),
-            command=r.get("command", ""), source=r.get("source", ""),
+            quant=q, format="gguf", runtime=RUNTIME, source=r.get("source", ""),
         )
         rec = build_receipt(
             recipe, {
@@ -116,13 +114,10 @@ def main() -> int:
             "kl_max_component": round(r.get("kl_max_component", 0), 4),
             "accepted": True,
             "receipt": f"{q.lower()}.receipt.json",
-            # the HOW + WHERE — advisory but bound into the receipt + shown here
-            "recipe": {
-                "base": r.get("base", ""),
-                "calibration": r.get("calibration", ""),
-                "command": r.get("command", ""),
-                "source": r.get("source", ""),
-            },
+            # house-verified facts only: source (fetch + hash-checked) and the
+            # objective per-tensor quantization structure read from the file.
+            "source": r.get("source", ""),
+            "tensors": r.get("tensors", {}),
         })
         print(f"  wrote {q.lower()}.receipt.json")
 
