@@ -56,10 +56,13 @@ class Recipe(BaseModel):
 ACCEPT_KL = 0.10
 
 
-def accepted(top1_match: float | None, kl_mean: float | None) -> bool:
+def accepted(kl_mean: float | None, kl_max_component: float | None = None) -> bool:
     """A recipe is accepted (and eligible for the crown) only if its mean KL
-    stays within the bound. KL is the precision gate; top-1 is reported but
-    not gated (redundant given KL's tight correlation with flips)."""
-    if kl_mean is None:
+    stays within the bound in EVERY component. Gating on the worst component
+    (kl_max_component) closes the "excel on the dominant component, ignore the
+    rest" attack; falls back to the overall mean if per-component isn't known.
+    KL is the precision gate; top-1 is reported but not gated."""
+    gate = kl_max_component if kl_max_component is not None else kl_mean
+    if gate is None:
         return False
-    return kl_mean <= ACCEPT_KL
+    return gate <= ACCEPT_KL

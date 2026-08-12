@@ -75,8 +75,8 @@ def crown_decision(challenger: dict, king: dict | None) -> tuple[bool, str]:
     """
     cf = challenger.get("fidelity", {})
     cs = challenger.get("size", {})
-    if not accepted(cf.get("top1_match", 0), cf.get("kl_mean")):
-        return False, "below the acceptance bar (needs >= 0.99 top-1, KL within bound)"
+    if not accepted(cf.get("kl_mean"), cf.get("kl_max_component")):
+        return False, "below the acceptance bar (KL within bound in every component)"
     if king is None:
         return True, ""
     if (cf.get("corpus_version") != king["fidelity"].get("corpus_version")
@@ -118,7 +118,7 @@ def main() -> int:
     print(f"== compression race: {recipe.model} [{recipe.quant} / {recipe.format}] ==")
     print("gate: fidelity vs stored BF16 reference ...")
     fidelity = measure_vs_reference(args.reference_artifact, args.submission_url)
-    ok_gate = accepted(fidelity.get("top1_match", 0), fidelity.get("kl_mean"))
+    ok_gate = accepted(fidelity.get("kl_mean"), fidelity.get("kl_max_component"))
     print(f"  top1_match={fidelity.get('top1_match'):.3f}  kl_mean={fidelity.get('kl_mean'):.4f}  "
           f"kl_p999={fidelity.get('kl_p999'):.4f}  (n={fidelity.get('n')} samples, "
           f"corpus_sha={fidelity.get('corpus_sha256')})")

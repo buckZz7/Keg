@@ -38,8 +38,9 @@ is not a submission.
 ## The gate — acceptance
 
 Fidelity is measured vs the model's own reference, over the sampled positions,
-under the field's **long-mode** convention (a deep top-k over long-context
-positions — the same measurement llama-perplexity / mlx-kld use):
+using the field's **single-pass long-mode** measurement (the llama-perplexity /
+mlx-kld method: the corpus stream is processed once in context windows with KV
+reuse, and the top-k log-probs at each sampled position are recorded):
 
 - **KL divergence** (primary) — how much the recipe's next-token distribution
   drifts from the model's. KL is the field's fidelity metric of record
@@ -49,9 +50,13 @@ positions — the same measurement llama-perplexity / mlx-kld use):
 - **top-1 agreement** (reported, not gated) — the recipe's most-likely token vs
   the model's, for human readability.
 
-**A recipe is accepted only if its mean KL stays within the bound**; above it,
-rejected. top-1 is reported but is not a pass/fail gate — it is redundant given
-KL's tight correlation with flips.
+**Positions are sampled per component** (prose, code, multilingual, technical)
+with a floor, so no component is a thin weak spot a miner could overfit or
+ignore — and **a recipe is accepted only if EVERY component's mean KL passes
+the bound**, not just the overall mean. Gating on the worst component closes the
+"excel on the dominant component, let the rest fail" attack (smcleod: "a quant
+that holds up on prose but falls apart on code would look fine here" — unless
+you gate per component). top-1 is reported but is not a pass/fail gate.
 
 The threshold is **calibrated by a ladder** — on a new model the house measures
 where the known quants (Q8 → Q4) land against the reference, then sets the bar

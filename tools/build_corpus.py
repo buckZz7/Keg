@@ -195,31 +195,43 @@ def main() -> int:
     args = ap.parse_args()
 
     print("building production corpus (prose + knowledge + technical + code + multilingual) ...")
-    docs = []
-    docs += gutenberg_docs()
-    docs += wiki_docs()
-    docs += multilingual_wiki_docs()
-    docs += arxiv_docs()
-    docs += code_files()
+    # (component, text) — component labels enable stratified sampling and the
+    # per-component gate (no component can be a thin weak spot to overfit).
+    docs: list[tuple[str, str]] = []
+    for t in gutenberg_docs():
+        docs.append(("prose", t))
+    for t in wiki_docs():
+        docs.append(("prose", t))
+    for t in multilingual_wiki_docs():
+        docs.append(("multilingual", t))
+    for t in arxiv_docs():
+        docs.append(("technical", t))
+    for t in code_files():
+        docs.append(("code", t))
 
     if not docs:
         print("no documents fetched — check network"); return 1
 
-    seen = set(); uniq = []
-    for d in docs:
+    seen: dict[str, str] = {}; uniq: list[tuple[str, str]] = []
+    for comp, d in docs:
         if d not in seen:
-            seen.add(d); uniq.append(d)
+            seen[d] = comp; uniq.append((comp, d))
     random.Random(0).shuffle(uniq)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(uniq) + "\n")
+    # text docs (the stream basis) ...
+    out.write_text("\n".join(t for _, t in uniq) + "\n")
+    # ... and one component label per doc, aligned with the output order
+    comp_out = out.with_suffix(".components.txt")
+    comp_out.write_text("\n".join(c for c, _ in uniq) + "\n")
 
-    total_chars = sum(len(d) for d in uniq)
-    est = sum(max(0, (len(d) - 8 - 64) // 64 + 1) for d in uniq)
+    total_chars = sum(len(d) for _, d in uniq)
+    est = sum(max(0, (len(d) - 8 - 64) // 64 + 1) for _, d in uniq)
     print(f"\nwrote {out}: {len(uniq)} docs, {total_chars} chars "
           f"(~{total_chars//4} tokens), ~{est} candidate positions")
     print(f"corpus sha256: {hashlib.sha256(out.read_bytes()).hexdigest()}")
+    print(f"components sha256: {hashlib.sha256(comp_out.read_bytes()).hexdigest()}")
     return 0
 
 
