@@ -62,11 +62,15 @@ def inspect(path: str) -> dict:
     assert magic == b"GGUF", "not a GGUF file"
     version, n_tensors, n_kv = struct.unpack_from("<IQQ", f, 4)
     pos = 4 + 4 + 8 + 8
-    # skip metadata KV pairs
+    # skip metadata KV pairs; capture the architecture key
+    arch = None
     for _ in range(n_kv):
-        _, pos = _read_str(f, pos)          # key
+        key, pos = _read_str(f, pos)
         vtype = struct.unpack_from("<I", f, pos)[0]
-        pos = _skip_value(f, pos + 4, vtype)
+        if key == "general.architecture" and vtype == 9:
+            arch, _ = _read_str(f, pos + 4)
+        else:
+            pos = _skip_value(f, pos + 4, vtype)
     # tensor infos
     tensors = {}
     for _ in range(n_tensors):
@@ -87,6 +91,7 @@ def inspect(path: str) -> dict:
     nbytes = len(f)
     summary = {
         "gguf_version": version,
+        "architecture": arch,
         "n_tensors": n_tensors,
         "size_bytes": nbytes,
         "tensors_by_type": dict(by_type),
