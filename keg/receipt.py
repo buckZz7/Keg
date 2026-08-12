@@ -55,15 +55,15 @@ def build_receipt(
         "recipe": recipe.model_dump(),
         "recipe_fingerprint": recipe.fingerprint(),
         "fidelity": fidelity,
-        "accepted": accepted(fidelity.get("top1_match", 0),
-                             fidelity.get("kl_mean")),
+        "accepted": accepted(fidelity.get("kl_mean"),
+                             fidelity.get("kl_max_component")),
         "size": {
             "size_bytes": size_bytes,
             "size_gb": round(size_gb, 3),
             "bpw": round(bpw, 3) if bpw is not None else None,
         },
-        "gate_passed": accepted(fidelity.get("top1_match", 0),
-                                fidelity.get("kl_mean")),
+        "gate_passed": accepted(fidelity.get("kl_mean"),
+                                fidelity.get("kl_max_component")),
         "ts": time.time(),
     }
     if crown is not None:

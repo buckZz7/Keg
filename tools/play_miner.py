@@ -137,10 +137,10 @@ def main() -> int:
             measured = fidelity.get("top1_match", 0.0)
             kl = fidelity.get("kl_mean", float("inf"))
 
-            if not accepted(measured, kl):
+            if not accepted(kl, fidelity.get("kl_max_component")):
                 receipt = build_receipt(recipe, fidelity, size_bytes, epoch="sim")
                 print(f"{name:<14}{quant:<9}{gb:>6.1f}{measured:>7.3f}  REJECTED "
-                      f"(top-1 {measured*100:.1f}% < 99% or KL {kl:.3f} above bound)")
+                      f"(KL {kl:.3f} above bound)")
                 print(f"  {'':22}receipt valid={verify_receipt(receipt)} "
                       f"sha={receipt['receipt_sha256'][:10]}")
                 continue

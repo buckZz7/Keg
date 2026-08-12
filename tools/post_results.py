@@ -55,7 +55,7 @@ def main() -> int:
     ref_path = Path(args.ref)
     board_path = Path(args.board)
 
-    ok = {q: r for q, r in results.items() if accepted(r["top1"], r.get("kl"))}
+    ok = {q: r for q, r in results.items() if accepted(r.get("kl"), r.get("kl_max_component"))}
     print(f"accepted quants: {list(ok) if ok else '(none)'}")
     if not ok:
         print("no accepted quants — no crown yet")
