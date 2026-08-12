@@ -6,12 +6,15 @@ The race metric is SIZE — how small the model footprint is while still
 holding the model's behavior. The house MEASURES the real file size into
 the receipt; a miner's claim is advisory only.
 
-A recipe is accepted — and competes for the crown — only if it holds >= 0.99
-top-1 against the model's own BF16 reference, AND stays within a KL bound of
-the reference's next-token distribution (the secondary, production-standard
-fidelity metric — top-1 catches argmax flips, KL catches tail/drift).
-Below either it is rejected. There are no fidelity tiers: you are either
-still the model, or you aren't.
+A recipe is accepted — and competes for the crown — only if its next-token
+distribution stays within a KL bound of the model's own BF16 reference,
+measured under the field-standard long-mode KLD (deep top-k, long context).
+KL divergence is the field's fidelity metric of record ("Accuracy is Not All
+You Need", Fireworks, llama-perplexity): it is highly correlated with answer
+flips, and is the one that separates near-lossless quants from lossy ones on a
+hard, diverse corpus. top-1 agreement is reported in the receipt (human-
+readable) but is not a pass/fail gate. Below the KL bound you are still the
+model; above it, you aren't. There are no fidelity tiers.
 """
 from __future__ import annotations
 
@@ -39,25 +42,24 @@ class Recipe(BaseModel):
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
-# Fidelity thresholds for ACCEPTANCE and the CROWN. A recipe is only a valid
-# submission — and only competes for the crown — if it holds >= this top-1
-# match (primary) against the model's own BF16 reference, and stays within
-# this KL bound (secondary, production-standard). Below either, rejected.
+# Fidelity threshold for ACCEPTANCE. A recipe is a valid submission — and only
+# competes for the crown — if its mean KL divergence from the model's own BF16
+# reference stays within this bound, measured under long-mode KLD (deep
+# top-k, long context). KL is the primary gate (no top-1 floor).
 #
-# This is the anti-free-ride: holding the model's behavior is not free. Most
-# off-the-shelf low quants (Q4_K_M class) land at 97-98% top-1 and get
-# rejected. The KL bound is generous (catches gross drift, not near-lossless
-# recipes) and is set by the calibration ladder on the box.
-ACCEPT_MIN = 0.99
-ACCEPT_KL = 0.20
+# The value is anchored to the field's near-lossless KLD range (~0.05-0.1 nats:
+# smcleod/mlx-kld "typical 4-bit" 1e-2..5e-2, "substantial" >1e-1; Fireworks
+# high-quality deployments < 7e-3) AND finalized by the calibration ladder on
+# the box — set where the near-lossless cluster (Q8/Q6) separates from the
+# lossy control (Q4). PENDING final ladder number; do not ship receipts on a
+# placeholder.
+ACCEPT_KL = 0.10
 
 
-def accepted(top1_match: float, kl_mean: float | None = None) -> bool:
-    """A recipe is accepted (and eligible for the crown) only if it holds
-    >= 0.99 top-1 AND stays within the KL bound. The KL bar is a secondary
-    safety net — top-1 is the precision gate."""
-    if top1_match < ACCEPT_MIN:
+def accepted(top1_match: float | None, kl_mean: float | None) -> bool:
+    """A recipe is accepted (and eligible for the crown) only if its mean KL
+    stays within the bound. KL is the precision gate; top-1 is reported but
+    not gated (redundant given KL's tight correlation with flips)."""
+    if kl_mean is None:
         return False
-    if kl_mean is not None and kl_mean > ACCEPT_KL:
-        return False
-    return True
+    return kl_mean <= ACCEPT_KL

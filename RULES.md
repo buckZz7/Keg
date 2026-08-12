@@ -1,8 +1,9 @@
 # Keg — Rules
 
 The smallest recipe that still *is* the model leads the board. A recipe is
-accepted — and competes — only if it holds **≥99%** of the model's true
-behavior. Everything is measured, nothing is claimed.
+accepted — and competes — only if its token distribution stays within a KL
+bound of the model's (near-lossless). Everything is measured, nothing is
+claimed.
 
 ## The reference (the truth, public and re-derivable)
 
@@ -36,29 +37,30 @@ is not a submission.
 
 ## The gate — acceptance
 
-Fidelity is measured with the two metrics production serving stacks actually
-use, over the sampled positions, both vs the model's own reference:
+Fidelity is measured vs the model's own reference, over the sampled positions,
+under the field's **long-mode** convention (a deep top-k over long-context
+positions — the same measurement llama-perplexity / mlx-kld use):
 
-- **Top-1 next-token agreement** (primary) — the recipe's most-likely token
-  must match the model's. This is the direct "is the model recognizably
-  itself" signal.
-- **KL divergence** (secondary) — distribution shift vs the reference, bounded
-  over the matched top-k. Top-1 catches argmax flips; KL catches tail/drift.
+- **KL divergence** (primary) — how much the recipe's next-token distribution
+  drifts from the model's. KL is the field's fidelity metric of record
+  (*"Accuracy is Not All You Need,"* arXiv:2407.09141; Fireworks; llama-
+  perplexity): it is highly correlated with answer flips, and it is the metric
+  that separates near-lossless quants from lossy ones on a hard, diverse corpus.
+- **top-1 agreement** (reported, not gated) — the recipe's most-likely token vs
+  the model's, for human readability.
 
-**A recipe is accepted only if it holds ≥0.99 top-1 AND stays within the KL
-bound**; below either it is rejected. Both are deterministic.
+**A recipe is accepted only if its mean KL stays within the bound**; above it,
+rejected. top-1 is reported but is not a pass/fail gate — it is redundant given
+KL's tight correlation with flips.
 
-The thresholds are **calibrated by a ladder** — on a new model the house first
-measures where the known quants (Q8 → Q2) land against the reference, then sets
-the bars from data, not by fiat. The KL bound is a generous safety net (catches
-gross drift, not near-lossless recipes); top-1 is the precision gate.
+The threshold is **calibrated by a ladder** — on a new model the house measures
+where the known quants (Q8 → Q4) land against the reference, then sets the bar
+from data, anchored to the field's near-lossless KLD range (≈0.05–0.1 nats;
+Fireworks production-quality deployments < 7e-3). Not by fiat.
 
-The ≥99% bar tracks the near-baseline "silent zone" of quantization fidelity —
-the cluster (Q4_K_M → Q8) where distributional metrics lose the power to *rank*
-quality (the collapse is metric-invariant: top-1 and KL alike). Keg does not
-rank within that zone; it gates (≥99% or not) and then ranks by size, which is
-exactly the right discriminator there.
-(*"Displacement Is Not Direction," arXiv:2606.19558 — see corpus/MANIFEST.md.*)
+Keg gates on KL (still the model, or not) and then ranks by size — the right
+discriminator in the near-baseline cluster where fidelity metrics lose the
+power to rank. (*"Displacement Is Not Direction,"* arXiv:2606.19558.)
 
 ## The score — size
 
@@ -68,7 +70,7 @@ Smaller is better.
 ## The crown — current best
 
 A recipe becomes the current best **only if it is smaller than the incumbent
-AND accepted (≥0.99 top-1, within the KL bound)**. A smaller-but-lossier
+AND accepted (within the KL bound)**. A smaller-but-lossier
 recipe is rejected, not rewarded. Both sides must share the same corpus and
 reference, else the crown holds. There is no seed: the first accepted recipe
 establishes the crown; anyone smaller takes it.
