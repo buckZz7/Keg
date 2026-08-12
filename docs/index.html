@@ -23,7 +23,8 @@
   /* header */
   header{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(14,16,19,.92);backdrop-filter:blur(6px);z-index:10}
   .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
-  .nav .mark{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.06em;color:var(--accent2)}
+  .nav .mark{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:.06em;color:var(--accent2);display:flex;align-items:center;gap:8px}
+  .nav .mark svg{display:block;color:var(--accent2)}
   .nav .mark b{color:var(--ink)}
   .nav .links{margin-left:auto;display:flex;gap:18px;font-size:13px;color:var(--muted)}
   .nav .links a{color:var(--muted)}
@@ -96,7 +97,16 @@
 
 <header>
   <div class="wrap nav">
-    <div class="mark">&#129346; <b>KEG</b></div>
+    <div class="mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8.5 4h7c1.4 0 2.5.9 2.5 2v12c0 1.1-1.1 2-2.5 2h-7c-1.4 0-2.5-.9-2.5-2V6c0-1.1 1.1-2 2.5-2Z"/>
+        <path d="M6 9.5h12"/>
+        <path d="M6 14.5h12"/>
+        <circle cx="12" cy="6" r=".7" fill="currentColor" stroke="none"/>
+        <path d="M15 6.5v-1.6"/>
+      </svg>
+      <b>KEG</b>
+    </div>
     <div class="links">
       <a href="#race">The race</a>
       <a href="#board">Board</a>
