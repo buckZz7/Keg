@@ -1,26 +1,30 @@
 """Keg — the gate: fidelity to the model reference.
 
 A recipe is measured against the model's own BF16 reference over a fixed set
-of sampled positions drawn from a PUBLIC, diverse corpus, using the two
+of sampled next-token positions drawn from a PUBLIC, diverse corpus, using the
 metrics production serving stacks actually use:
 
-- **top-1 agreement** (primary) — does the recipe's most-likely next token
-  match the true model's? This is the direct "is the model recognizably
-  itself" signal (equivalently, the EAR / answer-flip rate).
-- **KL divergence** (secondary) — distribution shift vs the reference,
-  bounded over the matched top-k (the pattern used by sparkinfer's eval and
-  by GGUF serving tools), catching tail/drift that top-1 alone can miss.
+- **KL divergence** (primary) — distribution shift vs the reference, bounded
+  over a deep top-k. The field-standard fidelity metric (llama-perplexity,
+  Fireworks, "Accuracy is Not All You Need"): it measures how much the quant's
+  token distribution drifts from the base model's, and is highly correlated
+  with answer flips.
+- **top-1 agreement** (reported, not gated) — does the recipe's most-likely
+  next token match the true model's? Human-readable companion to KLD.
+
+Measurement matches the field's *long-mode* convention (llama-perplexity /
+mlx-kld): positions are scored with a long preceding context (a ~2048-token
+window), not short prefixes. Short prefixes flatter quants because early-
+context predictions are mostly trivial; long context gives a realistic read.
 
 Trustless by construction: the corpus is public and hashed, so anyone can
-re-derive the reference from the model — no sealed corpus, no house
-authority. Anti-gaming comes from the design, not secrecy:
+re-derive the reference from the model — no sealed corpus, no house authority.
+Anti-gaming comes from the design, not secrecy: a broad corpus can't be
+meaningfully overfit by calibration, and the "smallest faithful" metric
+punishes memorization.
 
-- a broad corpus can't be meaningfully overfit by calibration, and
-- the "smallest faithful" metric punishes memorization (encoding thousands
-  of positions into a recipe costs size, which loses the race).
-
-The reference artifact stores each sampled position's top-k log-probs, so
-both metrics replay from a small artifact.
+The reference artifact stores each sampled position's deep top-k log-probs,
+so the gate replays from a compact, re-derivable artifact.
 """
 from __future__ import annotations
 
@@ -38,16 +42,23 @@ CORPUS_VERSION = 3
 
 _DEFAULT_CORPUS = Path(__file__).resolve().parent.parent / "corpus" / "seed.txt"
 
-# Next-token positions to sample for the gate. With N ~ 5000 the standard
-# error near p=0.99 is ~0.2% — cleanly separating accept/reject.
-DEFAULT_N = 5000
-_STRIDE = 64  # char stride for candidate positions within a document
+# Next-token positions to sample for the gate. Long-context positions are
+# informative, so fewer suffice than the short-prefix design; N ~ 2500 keeps
+# the gate's standard error well under 1% while keeping per-pass time sane.
+DEFAULT_N = 2500
 
-# Top-k depth stored for the reference and used for the bounded KL. Deep
-# enough that the submission's top token is almost always covered (sparkinfer
-# dumps a deep top-k so the tail isn't floored).
-TOP_K = 32
+# Depth of the per-position top-k. Deep enough that the bounded KL closely
+# approximates full-vocabulary KL: smcleod's mlx-kld measures K=1024 at ~2.3%
+# error vs the dense (full-vocab) value, and the ordering is rank-preserving
+# even at much smaller k.
+TOP_K = 1024
 _LOG_FLOOR = -20.0  # log-prob for tokens not in the returned top-k
+
+# Long-context window (in characters, ~4 chars/token) scored before each
+# position, matching the field's long-mode (llama-perplexity / mlx-kld use
+# ~2048-token contexts). Positions nearer than this to the stream start are
+# skipped (no long context available).
+_CTX_CHARS = 8192  # ~2048 tokens
 
 
 def load_corpus(path: str | None = None) -> List[str]:
@@ -63,25 +74,34 @@ def _corpus_sha(corpus: List[str]) -> str:
     return hashlib.sha256("\n".join(corpus).encode()).hexdigest()[:16]
 
 
-def sample_positions(corpus: List[str], n: int) -> List[Tuple[int, int]]:
-    """Deterministic set of (doc_index, char_offset) next-token positions.
+def build_stream(corpus: List[str]) -> str:
+    """The corpus as one continuous text stream (docs joined), the basis for
+    long-context next-token positions. Deterministic from the corpus."""
+    return "\n\n".join(corpus)
 
-    A pure function of the corpus (seeded by its hash), so the reference and
-    every submission measure the exact same points — reproducible by anyone.
+
+def sample_positions(corpus: List[str], n: int) -> List[int]:
+    """Deterministic set of char offsets in the stream with long context.
+
+    Each offset has >= _CTX_CHARS of preceding text, so the prompt is a long,
+    non-trivial context window (the field's long-mode). A pure function of the
+    corpus (seeded by its hash), so the reference and every submission measure
+    the exact same points — reproducible by anyone.
     """
+    stream = build_stream(corpus)
+    if len(stream) <= _CTX_CHARS + 2:
+        # too short for long context; fall back to shallow offsets
+        return list(range(_CTX_CHARS, len(stream) - 1))[:n]
     rng = random.Random(_corpus_sha(corpus))
-    candidates: List[Tuple[int, int]] = []
-    for di, doc in enumerate(corpus):
-        for off in range(_STRIDE, len(doc) - 8, _STRIDE):
-            candidates.append((di, off))
-    if len(candidates) > n:
-        rng.shuffle(candidates)
-        candidates = candidates[:n]
-    return sorted(candidates)
-
-
-def _pos_key(di: int, off: int) -> str:
-    return f"{di}:{off}"
+    lo, hi = _CTX_CHARS, len(stream) - 1
+    # sample with a modest step to spread positions across the stream, then
+    # jitter deterministically so the set isn't trivially periodic
+    step = max(1, (hi - lo) // max(1, n))
+    offsets = [o for o in range(lo, hi, step)]
+    if len(offsets) > n:
+        rng.shuffle(offsets)
+        offsets = offsets[:n]
+    return sorted(offsets)
 
 
 def _topk(base_url: str, prompt: str, top_k: int = TOP_K) -> Dict[str, float]:
@@ -90,7 +110,7 @@ def _topk(base_url: str, prompt: str, top_k: int = TOP_K) -> Dict[str, float]:
         f"{base_url}/completions",
         json={"prompt": prompt, "max_tokens": 1, "logprobs": top_k,
               "echo": False, "temperature": 0.0},
-        timeout=120,
+        timeout=180,
     )
     r.raise_for_status()
     lp = r.json()["choices"][0]["logprobs"]
@@ -108,12 +128,11 @@ def _argmax(logp: Dict[str, float]) -> str:
 
 
 def _kld(ref_logp: Dict[str, float], sub_logp: Dict[str, float]) -> float:
-    """Bounded KL(ref || sub) over the union of the two top-k supports.
+    """KL(ref || sub) over the union of the two deep top-k supports.
 
-    Tokens missing from a side are floored. Matched-depth so the reference
-    tail isn't floored (the sparkinfer pattern). Base is whatever the server
-    returns; consistent across ref and submission, so the value is comparable
-    and the threshold is set by the calibration ladder.
+    Tokens missing from a side are floored. Deep top-k makes this a close
+    approximation of full-vocabulary KLD. Direction matches the field
+    standard (weight divergence by the reference's probabilities).
     """
     tokens = set(ref_logp) | set(sub_logp)
     rp = {t: math.exp(ref_logp.get(t, _LOG_FLOOR)) for t in tokens}
@@ -130,27 +149,35 @@ def _kld(ref_logp: Dict[str, float], sub_logp: Dict[str, float]) -> float:
     return kld
 
 
+def _prompt_for(stream: str, offset: int) -> str:
+    """The long-context window immediately before `offset` (the field's
+    long-mode: a ~_CTX_CHARS window ending at the position)."""
+    return stream[max(0, offset - _CTX_CHARS):offset]
+
+
 def save_reference(url: str, out: str, corpus: List[str] | None = None,
                    n: int = DEFAULT_N) -> str:
-    """Probe the model (the BF16 reference) over the sampled positions and
-    store the artifact: {position_key: {token: logprob}}. Hash-bound."""
+    """Probe the model (the BF16 reference) over the sampled long-context
+    positions and store the artifact: {offset: {token: logprob}}. Hash-bound."""
     corpus = corpus or load_corpus()
+    stream = build_stream(corpus)
     positions = sample_positions(corpus, n)
     raw: Dict[str, Dict[str, float]] = {}
-    for di, off in positions:
+    for off in positions:
         try:
-            lp = _topk(url, corpus[di][:off])
+            lp = _topk(url, _prompt_for(stream, off))
             if lp:
-                raw[_pos_key(di, off)] = lp
+                raw[str(off)] = lp
         except requests.HTTPError:
             raise
         except Exception:
             continue
     artifact = {
-        "schema": "keg/reference-v1",
+        "schema": "keg/reference-v2",
         "corpus_version": CORPUS_VERSION,
         "corpus_sha256": _corpus_sha(corpus),
         "top_k": TOP_K,
+        "ctx_chars": _CTX_CHARS,
         "n": len(raw),
         "positions": raw,
     }
@@ -160,34 +187,30 @@ def save_reference(url: str, out: str, corpus: List[str] | None = None,
 
 def load_reference(path: str) -> dict:
     artifact = json.loads(Path(path).read_text())
-    if artifact.get("schema") != "keg/reference-v1":
-        raise ValueError("not a keg reference artifact")
+    if artifact.get("schema") != "keg/reference-v2":
+        raise ValueError("not a keg reference-v2 artifact")
     return artifact
 
 
 def measure_vs_reference(reference_path: str, submission_url: str,
                          corpus: List[str] | None = None) -> dict:
-    """Fidelity of a submission vs the stored BF16 reference: top-1 agreement
-    (primary) and bounded KL (secondary), over the same sampled positions.
-
-    Deterministic, no LLM in the loop. Returns top1_match (0..1), kl_mean,
-    kl_p999, the sample count, and the corpus + reference hashes so receipts
-    bind to the exact yardstick.
-    """
+    """Fidelity of a submission vs the stored BF16 reference: KL divergence
+    (primary) and top-1 agreement (reported), over the same long-context
+    positions. Deterministic, no LLM in the loop."""
     corpus = corpus or load_corpus()
+    stream = build_stream(corpus)
     artifact = load_reference(reference_path)
-    positions = sample_positions(corpus, artifact["n"])  # same points as ref
+    positions = sample_positions(corpus, artifact["n"])
     refs = artifact["positions"]
     hits = 0
     total = 0
     klds: List[float] = []
-    for di, off in positions:
-        key = _pos_key(di, off)
-        ref = refs.get(key)
+    for off in positions:
+        ref = refs.get(str(off))
         if ref is None:
             continue
         try:
-            sub = _topk(submission_url, corpus[di][:off])
+            sub = _topk(submission_url, _prompt_for(stream, off))
         except requests.HTTPError:
             raise
         except Exception:
