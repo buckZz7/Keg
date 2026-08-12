@@ -42,6 +42,43 @@ it. The house runs the runtime on a known artifact (e.g. the BF16 itself) and
 confirms KL ≈ 0.0 against the stored reference. Different runtimes have
 different numerics, so this must be validated per runtime — not assumed.
 
+## Reference policy (staged / empirical — not assumed)
+
+The reference is the model's BF16 next-token behavior over the sampled positions.
+Whether ONE reference can serve every runtime is an *empirical* question, not an
+assumption — floating-point is non-associative, so different kernels produce
+slightly different floats. The policy is decided by measurement, never by fiat:
+
+1. **Default: one reference** (the current llama.cpp BF16 one — validated,
+   calibrated, self-consistent for GGUF). The corpus and positions are
+   runtime-agnostic (deterministic from the corpus hash).
+2. **When a new runtime is added (e.g. vLLM), run the cross-reference
+   self-check first:** generate that runtime's BF16 reference and compare it to
+   the existing one.
+   - **Reproduces within tolerance** (far below the KL gate, 0.02) → **one
+     reference serves all formats.** No proliferation; cross-format comparison
+     stays clean.
+   - **Does not reproduce** → that runtime gets its **own reference** (generated
+     once, public, hash-bound, re-derivable). Only the runtimes that genuinely
+     need it get one.
+3. **FP32-compute is the tool that makes "one reference" more likely.** Research
+   (arXiv 2506.09501) shows FP32 accumulation with BF16 weights gives
+   near-perfect determinism across configs (~2.2% sample divergence), versus
+   BF16's substantial variance. So upgrading the reference to FP32 compute can
+   shrink cross-runtime drift. But it must be adopted only after re-validating
+   it doesn't inflate the existing GGUF ladder (FP32 vs BF16 compute can shift
+   numbers, forcing re-calibration).
+
+**The per-runtime self-check is non-negotiable for every runtime regardless** —
+the whole design rests on "this runtime genuinely reproduces the reference we're
+scoring against." That reproduction tolerance (validated, far below the gate) is
+the trust guarantee, and it's where the effort goes.
+
+Net: **single reference by default, per-runtime only when a self-check proves it
+needed, FP32-compute to maximize the chance one reference suffices.** The gate,
+receipt, and crown are unaffected — they all just score against whatever
+reference the runtime reproduces.
+
 ## Anti-memorization gate per format
 
 The gate ("must be a real, loadable model of the lane's architecture, not a
