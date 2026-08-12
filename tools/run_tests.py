@@ -81,7 +81,10 @@ def test_gguf_inspect():
 
 
 def test_gguf_real_file():
-    """Parse a small real GGUF if present (else skip). Download one on demand."""
+    """Parse a small real GGUF (downloads ~428MB). Skip via KEG_SKIP_REAL=1."""
+    if os.environ.get("KEG_SKIP_REAL") == "1":
+        print("[skip] real GGUF test disabled (KEG_SKIP_REAL=1)")
+        return
     from gguf_tensors import inspect
     import urllib.request
     url = ("https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/"
