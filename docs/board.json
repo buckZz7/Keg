@@ -14,22 +14,41 @@
     }
   },
   "crown": {
-    "quant": "UD-Q6_K_XL"
+    "quant": "Q6_K"
   },
   "leaderboard": [
+    {
+      "quant": "Q6_K",
+      "size_gb": 22.9,
+      "top1": 0.963,
+      "kl_max_component": 0.0199,
+      "tps": null,
+      "accepted": true,
+      "receipt": "q6_k.receipt.json",
+      "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-Q8_0.gguf",
+      "tensors": {}
+    },
     {
       "quant": "UD-Q6_K_XL",
       "size_gb": 26.3,
       "top1": 0.9742,
+      "kl_max_component": 0.0165,
+      "tps": null,
       "accepted": true,
-      "receipt": "ud-q6_k_xl.receipt.json"
+      "receipt": "ud-q6_k_xl.receipt.json",
+      "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-UD-Q6_K_XL.gguf",
+      "tensors": {}
     },
     {
       "quant": "Q8_0",
       "size_gb": 29.6,
       "top1": 0.9834,
+      "kl_max_component": 0.0151,
+      "tps": null,
       "accepted": true,
-      "receipt": "q8_0.receipt.json"
+      "receipt": "q8_0.receipt.json",
+      "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-Q8_0.gguf",
+      "tensors": {}
     }
   ],
   "receipts": []

@@ -1,6 +1,6 @@
 {
   "schema": "keg/receipt-v1",
-  "receipt_sha256": "74a66d1bf241230b798dbfe5986efdfdf0a071b84fdad60d167c3b4d1b12f28d",
+  "receipt_sha256": "fcc858b2ff428c3fd419da8daa25ee52c9c7d4cedfd94d0c5714a9e603df28e8",
   "epoch": "2026-08-12",
   "box": "6fdc9722ce9e3472",
   "recipe": {
@@ -11,9 +11,10 @@
     "format": "gguf",
     "runtime": "llama.cpp",
     "runtime_version": "",
+    "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-Q8_0.gguf",
     "note": ""
   },
-  "recipe_fingerprint": "ddd463e1ff304deec9ca08a5c46850d3edf638abcec3f4349a564b2cf99f215d",
+  "recipe_fingerprint": "45d03b1909ba3ddc40e531fddfcb012aca86b945c667b1f4db6c457ce8661521",
   "fidelity": {
     "top1_match": 0.9834,
     "kl_mean": 0.0049,
@@ -32,5 +33,6 @@
     "bpw": null
   },
   "gate_passed": true,
-  "ts": 1786512843.1136203
+  "tps": null,
+  "ts": 1786548635.7414439
 }

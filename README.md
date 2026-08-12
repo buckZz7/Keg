@@ -20,7 +20,7 @@ model, no sealed corpus, no house authority.
 
 | Lane | Model | Current best (smallest accepted) |
 |---|---|---|
-| [glimmer-30b](lanes/glimmer-30b/) | Muse Glimmer 30B | UD-Q6_K_XL (26.3 GB) |
+| [glimmer-30b](lanes/glimmer-30b/) | Muse Glimmer 30B | Q6_K (22.9 GB) |
 
 ## How a lane works
 

@@ -1,0 +1,38 @@
+{
+  "schema": "keg/receipt-v1",
+  "receipt_sha256": "41910c57f53ecaed4012a533db559684e2dbccdbf9e69a7cd9703b3223b268fe",
+  "epoch": "2026-08-12",
+  "box": "6fdc9722ce9e3472",
+  "recipe": {
+    "model": "muse-glimmer-30b",
+    "model_file": "keg-Q6_K.gguf",
+    "model_sha256": "d553d2196de4277f0a78394c92447f57613ef888b20591236747a7844fc069d5",
+    "quant": "Q6_K",
+    "format": "gguf",
+    "runtime": "llama.cpp",
+    "runtime_version": "",
+    "source": "https://huggingface.co/unsloth/Muse-Glimmer-30B-GGUF/resolve/main/Muse-Glimmer-30B-Q8_0.gguf",
+    "note": ""
+  },
+  "recipe_fingerprint": "e40b68568c69ea3177f875271cbf33e53e9bf946d705c116169115d96a9e2935",
+  "fidelity": {
+    "top1_match": 0.963,
+    "kl_mean": 0.0173,
+    "kl_max_component": 0.0199,
+    "kl_by_component": {
+      "prose": 0.019,
+      "code": 0.0052,
+      "technical": 0.0039,
+      "multilingual": 0.0199
+    }
+  },
+  "accepted": true,
+  "size": {
+    "size_bytes": 22867215136,
+    "size_gb": 21.297,
+    "bpw": null
+  },
+  "gate_passed": true,
+  "tps": null,
+  "ts": 1786548635.7404249
+}

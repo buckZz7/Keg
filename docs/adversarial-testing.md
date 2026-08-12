@@ -45,10 +45,29 @@ all on an A100-80GB. Candidates are real `unsloth/Muse-Glimmer-30B-GGUF` files
   isn't a llama-quantize ftype) — that's Unsloth's tooling. So the crown's exact
   recipe isn't trivially reproducible with vanilla tooling.
 
+## Update (same day): the crown was beatable — and now it's Q6_K
+
+The first crown (UD-Q6_K_XL, 26.3 GB) was **not the smallest passing recipe**:
+a **standard Q6_K (22.9 GB) passes the gate** (worst-comp KL 0.0199, thin margin)
+and is 3.4 GB smaller. So the house baseline was sub-optimal — it crowned the
+only 6-bit in the vendor repo without testing the plain Q6_K. The crown moves to
+**Q6_K (22.9 GB)**.
+
+Also tested and rejected: **mixed-precision / error-placement** (F16 embedding +
+output projection, quantized Q5/Q4 body) — it was *worse* than the uniform quants
+(Q5 body 0.066, Q4 body 0.20) and larger; the body drives prose degradation, so
+protecting emb/output tensors doesn't help on this model.
+
+**Beating the new king (Q6_K, 22.9 GB)** requires a smaller passing recipe
+(< 22.9 GB, worst-comp KL ≤ 0.02). The next standard tier (Q5_K_XL, 21.8 GB)
+fails at 0.031, calibration gives no gain, so it needs genuine craft — a smarter
+per-tensor precision mix, a Q5.5-class recipe, a research-grade method (SLQ /
+GPTQ), or lossless packing. That is the innovation the benchmark is built to
+reward.
+
 ## Conclusion
 
-The gate is sound and the leaderboard is honest: **nothing smaller than Q6 holds
-the model on our corpus.** The crown's size is the floor for a passing recipe.
-A miner's only path to a smaller crown is a genuinely *new* quantization scheme
-that recovers Q6-level fidelity at lower bitwidth — i.e. legitimate craft, not a
-gaming vector. That's exactly the race the benchmark is built to reward.
+The gate is sound and the leaderboard is honest. The crown was beatable by a
+standard quant (Q6_K) — the house just hadn't tested it. Beating *that* now
+requires real quantization craft, which is exactly the race the benchmark exists
+to reward.
