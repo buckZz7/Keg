@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Keg — the compression race</title>
-<meta name="description" content="Keg: a race to produce the smallest quantized model that still is the model — measured against a public, re-derivable reference.">
+<title>Keg — compression benchmark</title>
+<meta name="description" content="Keg: a benchmark for quantized-model compression — minimize the footprint while holding the model's fidelity, measured against a public, re-derivable reference.">
 <style>
   :root{
     --bg:#0e1013; --panel:#15181d; --panel2:#1a1e25; --line:#262b34;
@@ -105,10 +105,10 @@
         <circle cx="12" cy="6" r=".7" fill="currentColor" stroke="none"/>
         <path d="M15 6.5v-1.6"/>
       </svg>
-      <b>KEG</b>
+      <b>Keg</b>
     </div>
     <div class="links">
-      <a href="#race">The race</a>
+      <a href="#benchmark">The benchmark</a>
       <a href="#board">Board</a>
       <a href="#submit">Submit</a>
       <a href="#reference">Reference</a>
@@ -119,38 +119,40 @@
 
 <div class="wrap">
   <section class="hero">
-    <div class="kicker">Compression race</div>
-    <h1>Produce the smallest model that <em>still is</em> the model.</h1>
-    <p>Keg is a race to quantize a model down as far as it will go before it stops
-    being recognizably itself. Every submission is measured against a public,
-    re-derivable reference — the model's own next-token behavior. The smallest
-    recipe that passes takes the crown.</p>
+    <div class="kicker">Compression benchmark</div>
+    <h1>Minimize the footprint. <em>Keep the model.</em></h1>
+    <p>Keg is a benchmark for quantized-model compression. A submission is a
+    real model file, measured against a public, re-derivable reference — the
+    model's own next-token behavior. It's accepted only if it holds ≥99%
+    fidelity; accepted submissions rank by size, and the smallest holds the top
+    of the board.</p>
     <div class="statrow">
       <div class="stat"><div class="v" id="st-ref">—</div><div class="l">Reference</div></div>
       <div class="stat"><div class="v" id="st-n">—</div><div class="l">Probe positions</div></div>
       <div class="stat"><div class="v" id="st-bar">≥ 99%</div><div class="l">Acceptance (top-1)</div></div>
-      <div class="stat"><div class="v" id="st-crown">—</div><div class="l">Crown</div></div>
+      <div class="stat"><div class="v" id="st-crown">—</div><div class="l">Current best</div></div>
     </div>
   </section>
 
-  <section id="race">
+  <section id="benchmark">
     <h2>How it works</h2>
-    <p class="sec-sub">A submission is a real, loadable model file. The house serves it and
-    measures two things against the reference: top-1 agreement (primary) and KL
-    divergence within a bound (secondary). No seed baselines, no judge — either
-    it still is the model, or it isn't.</p>
+    <p class="sec-sub">A submission is a real, loadable model file. We serve it and measure
+    two things against the reference: top-1 agreement (primary) and KL divergence
+    within a bound (secondary). A submission is accepted only at ≥99% top-1 within
+    the KL bound, or it's rejected. Accepted submissions rank by size.</p>
     <div class="steps">
       <div class="step"><div class="n">01</div><div class="t">Submit</div><div class="d">A recipe pointing at an exact model file (byte-addressed by sha256).</div></div>
-      <div class="step"><div class="n">02</div><div class="t">Measure</div><div class="d">The house serves it and checks fidelity vs the BF16 reference over the public corpus.</div></div>
-      <div class="step"><div class="n">03</div><div class="t">Accept</div><div class="d">Passes at ≥ 99% top-1 within the KL bound, or it's rejected. No tiers.</div></div>
-      <div class="step"><div class="n">04</div><div class="t">Crown</div><div class="d">The smallest accepted recipe holds the crown — a challenger only dethrones by being smaller and passing.</div></div>
+      <div class="step"><div class="n">02</div><div class="t">Measure</div><div class="d">We serve it and check fidelity vs the BF16 reference over the public corpus.</div></div>
+      <div class="step"><div class="n">03</div><div class="t">Accept</div><div class="d">Holds ≥99% top-1 within the KL bound, or it's rejected. No tiers.</div></div>
+      <div class="step"><div class="n">04</div><div class="t">Rank</div><div class="d">Accepted submissions order by size — the smallest leads the board.</div></div>
     </div>
   </section>
 
   <section id="board">
     <h2>The board</h2>
-    <p class="sec-sub">Receipts are the source of truth. Only accepted recipes appear; the crown
-    is the smallest accepted. Each run posts a hash-bound, replayable receipt.</p>
+    <p class="sec-sub">Receipts are the source of truth. Only accepted recipes appear; the
+    current best is the smallest accepted. Each run posts a hash-bound, replayable
+    receipt.</p>
     <div class="board">
       <div class="head">
         <div class="title">glimmer-30b</div>
@@ -212,7 +214,7 @@
 
   <footer>
     <div class="wrap" style="padding:0">
-      <div>Keg — a compression race. <a href="https://github.com/buckZz7/Keg">github.com/buckZz7/Keg</a></div>
+      <div>Keg — a compression benchmark. <a href="https://github.com/buckZz7/Keg">github.com/buckZz7/Keg</a></div>
       <div class="mono" style="margin-top:6px">fixed artifact · public reference · hash-bound receipts</div>
     </div>
   </footer>

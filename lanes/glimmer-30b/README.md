@@ -1,6 +1,6 @@
 # Lane: glimmer-30b
 
-The compression race for **Muse Glimmer 30B** (Meta's open-weight 30B dense
+The compression benchmark for **Muse Glimmer 30B** (Meta's open-weight 30B dense
 vision model, Apache 2.0). The anchor lane — where the mechanism is proven
 before it spreads to more models.
 

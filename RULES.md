@@ -1,8 +1,8 @@
 # Keg — Rules
 
-The smallest recipe that still *is* the model wins. A recipe is accepted — and
-competes — only if it holds **≥99%** of the model's true behavior. Everything
-is measured, nothing is claimed.
+The smallest recipe that still *is* the model leads the board. A recipe is
+accepted — and competes — only if it holds **≥99%** of the model's true
+behavior. Everything is measured, nothing is claimed.
 
 ## The reference (the truth, public and re-derivable)
 
@@ -24,7 +24,7 @@ reference by running the model over the same corpus.
 ## The submission (a recipe)
 
 A recipe is the exact model file (by sha256), its format/quant, and the runtime
-that produced it. The race metric is **size** — the model's footprint —
+that produced it. The metric is **size** — the model's footprint —
 measured by the house from the real file, never from the miner's word.
 
 **A recipe must be a real, loadable model file of the lane's architecture.**
@@ -56,7 +56,7 @@ gross drift, not near-lossless recipes); top-1 is the precision gate.
 The ≥99% bar tracks the near-baseline "silent zone" of quantization fidelity —
 the cluster (Q4_K_M → Q8) where distributional metrics lose the power to *rank*
 quality (the collapse is metric-invariant: top-1 and KL alike). Keg does not
-rank within that zone; it gates (≥99% or not) and then races by size, which is
+rank within that zone; it gates (≥99% or not) and then ranks by size, which is
 exactly the right discriminator there.
 (*"Displacement Is Not Direction," arXiv:2606.19558 — see corpus/MANIFEST.md.*)
 
@@ -65,10 +65,10 @@ exactly the right discriminator there.
 The house measures the model file's footprint in bytes (and bpw, normalized).
 Smaller is better.
 
-## The crown — dominance
+## The crown — current best
 
-A challenger takes a lane's crown **only if it is smaller than the incumbent
-king AND accepted (≥0.99 top-1, within the KL bound)**. A smaller-but-lossier
+A recipe becomes the current best **only if it is smaller than the incumbent
+AND accepted (≥0.99 top-1, within the KL bound)**. A smaller-but-lossier
 recipe is rejected, not rewarded. Both sides must share the same corpus and
 reference, else the crown holds. There is no seed: the first accepted recipe
 establishes the crown; anyone smaller takes it.
@@ -87,7 +87,7 @@ house-measured size, the corpus + reference hashes, and the box fingerprint.
 **Receipts are the source of truth for the board.** A receipt that doesn't
 replay is not a receipt. Rejected attempts get a receipt too.
 
-## Why this isn't gamed
+## Why it's trustworthy
 
 - **Breadth kills calibration.** The corpus is broad and diverse; calibrating a
   quant to a broad corpus just makes a generally-better quant — the honest
@@ -95,6 +95,6 @@ replay is not a receipt. Rejected attempts get a receipt too.
 - **A recipe must be a real model, not an answer store.** The anti-memorization
   gate rejects any submission that isn't a loadable model file of the lane's
   architecture — a lookup table replaying the corpus is not a model and can't
-  win on size. Memorizing a broad corpus is impossible anyway: encoding
-  thousands of diverse positions costs size, which loses the race.
+  rank by size. Memorizing a broad corpus is impossible anyway: encoding
+  thousands of diverse positions costs size, which loses out.
 - **Public = verifiable.** Anyone re-derives the reference and checks a receipt.
