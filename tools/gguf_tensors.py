@@ -30,9 +30,11 @@ GGML_TYPE = {
     56: "TQ2_0_4_4", 57: "TQ2_0_4_8", 58: "TQ2_0_8_8",
 }
 
-# GGUF metadata value types: (1..13). 9=string, 10=array.
+# GGUF metadata value types (gguf_type enum) + byte sizes.
+#   0=UINT8 1=INT8 2=UINT16 3=INT16 4=UINT32 5=INT32 6=FLOAT32 7=BOOL
+#   8=STRING 9=ARRAY 10=UINT64 11=INT64 12=FLOAT64
 _META_VAL_SIZE = {
-    1: 1, 2: 1, 3: 2, 4: 2, 5: 4, 6: 4, 7: 4, 8: 1, 11: 8, 12: 8, 13: 8,
+    0: 1, 1: 1, 2: 2, 3: 2, 4: 4, 5: 4, 6: 4, 7: 1, 10: 8, 11: 8, 12: 8,
 }
 
 
@@ -44,11 +46,13 @@ def _read_str(f, pos):
 
 def _skip_value(f, pos, vtype):
     """Return pos after a metadata value of vtype."""
-    if vtype == 9:  # string
-        _, pos = _read_str(f, pos)
-    elif vtype == 10:  # array: u32 count + u32 elem_type + elems
-        count, elem = struct.unpack_from("<II", f, pos)
-        pos += 8
+    if vtype == 8:  # string
+        n = struct.unpack_from("<Q", f, pos)[0]
+        pos += 8 + n
+    elif vtype == 9:  # array: elem_type (u32) + n_elements (u64) + elements
+        elem = struct.unpack_from("<I", f, pos)[0]
+        count = struct.unpack_from("<Q", f, pos + 4)[0]
+        pos += 12
         for _ in range(count):
             pos = _skip_value(f, pos, elem)
     else:
@@ -67,8 +71,8 @@ def inspect(path: str) -> dict:
     for _ in range(n_kv):
         key, pos = _read_str(f, pos)
         vtype = struct.unpack_from("<I", f, pos)[0]
-        if key == "general.architecture" and vtype == 9:
-            arch, _ = _read_str(f, pos + 4)
+        if key == "general.architecture" and vtype == 8:  # string
+            arch, pos = _read_str(f, pos + 4)
         else:
             pos = _skip_value(f, pos + 4, vtype)
     # tensor infos
