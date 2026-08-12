@@ -59,11 +59,33 @@ output projection, quantized Q5/Q4 body) — it was *worse* than the uniform qua
 protecting emb/output tensors doesn't help on this model.
 
 **Beating the new king (Q6_K, 22.9 GB)** requires a smaller passing recipe
-(< 22.9 GB, worst-comp KL ≤ 0.02). The next standard tier (Q5_K_XL, 21.8 GB)
-fails at 0.031, calibration gives no gain, so it needs genuine craft — a smarter
-per-tensor precision mix, a Q5.5-class recipe, a research-grade method (SLQ /
-GPTQ), or lossless packing. That is the innovation the benchmark is built to
-reward.
+(< 22.9 GB, worst-comp KL ≤ 0.02).
+
+### Per-tensor mix challenge (same day, on A100 via llama-quantize `--tensor-type`)
+
+The obvious next move — a smarter per-tensor precision mix — was tested and
+**disproven**:
+
+| Recipe | Size (GB) | kl_max (worst comp) | Pass 0.02? |
+|---|---|---|---|
+| **Q6_K (king)** | 22.87 | **0.0199** (multilingual) | ✅ |
+| Mix C: Q6 base, drop only `attn_k`→Q5 | 22.86 | 0.0214 (multilingual) | ❌ |
+| Mix B: Q6 base, drop `attn_k`/`ffn_gate`/`attn_output`→Q5 | 21.75 | 0.0396 (prose) | ❌ |
+
+Dropping *any* of the attention/FFN projections to Q5 breaks the gate — prose at
+mix B (0.0396) and multilingual at mix C (0.0214). The gate forces near-uniform
+Q6 precision; the fidelity cliff is razor-sharp at ~22.86 GB. So the king is not
+beatable by any stock llama.cpp k-quant mix.
+
+**The remaining paths to beat Q6_K** are genuinely different methods:
+- **NVFP4** (Blackwell-native, ~16.8 GB for 30B, NVIDIA-published "near FP8") —
+  the strongest lead, but a 5090-only format.
+- **Lossless packing** (rearrange bits to shave bytes with no precision change).
+- **Research-grade low-bitwidth** (SLQ / GPTQ / Wanda) that hold KL, not just task
+  accuracy — an open research question, since KL on a high-entropy corpus is far
+  more sensitive than MMLU.
+
+That is the innovation the benchmark is built to reward.
 
 ## Conclusion
 
