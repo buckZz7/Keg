@@ -25,7 +25,7 @@ keg_extract --model <bf16.gguf> --tokens <dir>/tokens.txt \
   --positions <dir>/positions.txt --out reference.json --n-ctx 8192 --top-k 1024
 ```
 
-The harness (`keg_sample.cpp`, `keg_extract.cpp`) is compiled against the
+The harness ([tools/harness/](../../tools/harness/)) is compiled against the
 model's own llama.cpp build so the tokenizer matches exactly. Both the BF16
 reference and every submission use the **same** token positions and the same
 extractor, so their KL is directly comparable.
