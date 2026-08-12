@@ -1,0 +1,36 @@
+{
+  "schema": "keg/receipt-v1",
+  "receipt_sha256": "eaa07652a5eb7c92f69ca43429e311f1917a2ee062b4d6799ff9b0207b2f6224",
+  "epoch": "2026-08-12",
+  "box": "6fdc9722ce9e3472",
+  "recipe": {
+    "model": "muse-glimmer-30b",
+    "model_file": "Muse-Glimmer-30B-UD-Q6_K_XL.gguf",
+    "model_sha256": "fb5f80d110c4fa932cc652e70873c0bd12c0954009038aa675e65086104c2739",
+    "quant": "UD-Q6_K_XL",
+    "format": "gguf",
+    "runtime": "llama.cpp",
+    "runtime_version": "",
+    "note": ""
+  },
+  "recipe_fingerprint": "60256e977d215f514b99ab51fc462074cec1b7f221bba3449a8b55da25fb0609",
+  "fidelity": {
+    "top1_match": 0.9742,
+    "kl_mean": 0.0093,
+    "kl_max_component": 0.0165,
+    "kl_by_component": {
+      "prose": 0.0099,
+      "code": 0.003,
+      "technical": 0.002,
+      "multilingual": 0.0165
+    }
+  },
+  "accepted": true,
+  "size": {
+    "size_bytes": 26265362976,
+    "size_gb": 24.462,
+    "bpw": null
+  },
+  "gate_passed": true,
+  "ts": 1786512843.1130836
+}

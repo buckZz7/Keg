@@ -8,9 +8,29 @@
     "n": 4999,
     "generated": "2026-08-12",
     "method": "single-pass long-mode",
-    "self_check": {"top1": 1.0, "kl": 0.0}
+    "self_check": {
+      "top1": 1.0,
+      "kl": 0.0
+    }
   },
-  "crown": null,
-  "leaderboard": [],
+  "crown": {
+    "quant": "UD-Q6_K_XL"
+  },
+  "leaderboard": [
+    {
+      "quant": "UD-Q6_K_XL",
+      "size_gb": 26.3,
+      "top1": 0.9742,
+      "accepted": true,
+      "receipt": "ud-q6_k_xl.receipt.json"
+    },
+    {
+      "quant": "Q8_0",
+      "size_gb": 29.6,
+      "top1": 0.9834,
+      "accepted": true,
+      "receipt": "q8_0.receipt.json"
+    }
+  ],
   "receipts": []
 }

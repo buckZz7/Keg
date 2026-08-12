@@ -47,13 +47,14 @@ class Recipe(BaseModel):
 # reference stays within this bound, measured under long-mode KLD (deep
 # top-k, long context). KL is the primary gate (no top-1 floor).
 #
-# The value is anchored to the field's near-lossless KLD range (~0.05-0.1 nats:
-# smcleod/mlx-kld "typical 4-bit" 1e-2..5e-2, "substantial" >1e-1; Fireworks
-# high-quality deployments < 7e-3) AND finalized by the calibration ladder on
-# the box — set where the near-lossless cluster (Q8/Q6) separates from the
-# lossy control (Q4). PENDING final ladder number; do not ship receipts on a
-# placeholder.
-ACCEPT_KL = 0.10
+# The value is anchored to the field's near-lossless KLD range (smcleod/mlx-kld
+# "very close / well-made 6-bit" 1e-3..5e-3, "4-bit territory" 1e-2..5e-2,
+# "substantial" >1e-1; Fireworks high-quality deployments < 7e-3) AND set from
+# the calibration ladder. Our high-entropy corpus compresses the field's scale
+# ~2-3x (Q8 0.005, Q6 0.009 are the near-lossless tier), so the field's
+# near-lossless boundary ~0.025-0.09 lands at ~0.01-0.03 here. ACCEPT_KL = 0.02
+# sits above the near-lossless tier with ~2x headroom and below the lossy tier.
+ACCEPT_KL = 0.02
 
 
 def accepted(kl_mean: float | None, kl_max_component: float | None = None) -> bool:
