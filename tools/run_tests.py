@@ -66,6 +66,27 @@ def build_gguf(path: Path, arch: str, n_tensors: int = 3, quant_type: int = 14):
     return body
 
 
+def build_safetensors(path: Path, arch: str = "muse-glimmer", quant: str = "gptq",
+                      n_tensors: int = 2):
+    """Build a minimal safetensors: u64 header length + JSON header + pad bytes."""
+    meta = {}
+    if arch:
+        meta["model_type"] = arch
+    if quant:
+        meta["quant_method"] = quant
+    tensors = {
+        f"model.weight.{i}": {"dtype": "F16", "shape": [4096, 4096],
+                              "data_offsets": [i * 8, i * 8 + 8]}
+        for i in range(n_tensors)
+    }
+    if meta:
+        tensors = {"__metadata__": meta, **tensors}
+    hdr_json = json.dumps(tensors).encode()
+    data = struct.pack("<Q", len(hdr_json)) + hdr_json + b"\x00" * 64
+    path.write_bytes(data)
+    return data
+
+
 # ---------------------------------------------------------------------- tests
 def test_gguf_inspect():
     from gguf_tensors import inspect
@@ -157,6 +178,86 @@ def test_verify_submission_local():
             check("verify: mismatch raises", True)
 
 
+def test_verify_submission_format_dispatch():
+    """Format detection routes GGUF vs safetensors from bytes, not the claim."""
+    from verify_submission import _detect_format, verify
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+
+        # GGUF file detected as gguf
+        g = td / "m.gguf"
+        build_gguf(g, "muse-glimmer")
+        check("detect: gguf", _detect_format(str(g)) == "gguf")
+
+        # safetensors file detected as safetensors
+        st = td / "m.safetensors"
+        build_safetensors(st, arch="muse-glimmer", quant="gptq")
+        check("detect: safetensors", _detect_format(str(st)) == "safetensors")
+
+        # junk rejected
+        j = td / "junk.bin"
+        j.write_bytes(b"\x00\x01\x02\x03" + b"\x00" * 64)
+        check("detect: unknown", _detect_format(str(j)) == "unknown")
+
+
+def test_verify_submission_safetensors():
+    from verify_submission import verify
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        p = td / "m.safetensors"
+        build_safetensors(p, arch="muse-glimmer", quant="gptq")
+        sha = hashlib.sha256(p.read_bytes()).hexdigest()
+        sub = {"lane": "glimmer-30b", "quant": "NVFP4", "file": "m.safetensors",
+               "source": str(p), "sha256": sha}
+        rec = verify(sub, "muse-glimmer", str(td / "stage"))
+        check("safetensors: format", rec["format"] == "safetensors")
+        check("safetensors: sha match", rec["sha256"] == sha)
+        check("safetensors: arch verified",
+              rec["architecture"] == "muse-glimmer" and rec["architecture_verified"])
+        check("safetensors: quant scheme", rec["quantization_scheme"] == "gptq")
+        check("safetensors: tensor hist", "F16" in rec["tensors_by_type"],
+              json.dumps(rec["tensors_by_type"]))
+
+    # wrong arch in safetensors metadata must raise
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        p = td / "m.safetensors"
+        build_safetensors(p, arch="qwen2", quant="gptq")
+        sub = {"lane": "glimmer-30b", "quant": "NVFP4", "file": "m.safetensors",
+               "source": str(p)}
+        try:
+            verify(sub, "muse-glimmer", str(td / "stage"))
+            check("safetensors: wrong arch raises", False)
+        except ValueError:
+            check("safetensors: wrong arch raises", True)
+
+    # safetensors with NO arch in header: structural check passes, arch deferred
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        p = td / "m.safetensors"
+        build_safetensors(p, arch="", quant="gptq")
+        sub = {"lane": "glimmer-30b", "quant": "NVFP4", "file": "m.safetensors",
+               "source": str(p)}
+        rec = verify(sub, "muse-glimmer", str(td / "stage"))
+        check("safetensors: no-arch deferred",
+              rec["architecture"] is None and rec["architecture_verified"] is False)
+
+
+def test_verify_submission_unknown_format():
+    from verify_submission import verify
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        p = td / "junk.bin"
+        p.write_bytes(b"\x00\x01\x02\x03" + b"\x00" * 64)
+        sub = {"lane": "glimmer-30b", "quant": "Q6_K", "file": "junk.bin",
+               "source": str(p)}
+        try:
+            verify(sub, "muse-glimmer", str(td / "stage"))
+            check("verify: junk rejected", False)
+        except ValueError:
+            check("verify: junk rejected", True)
+
+
 def test_receipt_replay():
     from keg.receipt import build_receipt, verify_receipt
     from keg.recipe import Recipe
@@ -175,6 +276,9 @@ def main():
     test_gguf_inspect()
     test_safetensors_inspect()
     test_verify_submission_local()
+    test_verify_submission_format_dispatch()
+    test_verify_submission_safetensors()
+    test_verify_submission_unknown_format()
     test_receipt_replay()
     test_gguf_real_file()
     print()
