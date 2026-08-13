@@ -87,9 +87,14 @@ def main() -> int:
     rows = []
     for q in sorted(ok, key=lambda x: ok[x]["size_bytes"]):
         r = ok[q]
+        # format/runtime come from the measured entry when present (a safetensors
+        # recipe carries format="safetensors", runtime="vllm"); GGUF/llama.cpp is
+        # the default for the house's own ladder baselines.
+        fmt = r.get("format", "gguf")
+        runtime = r.get("runtime", "llama.cpp")
         recipe = Recipe(
             model=MODEL, model_file=r["file"], model_sha256=r["sha256"],
-            quant=q, format="gguf", runtime=RUNTIME, source=r.get("source", ""),
+            quant=q, format=fmt, runtime=runtime, source=r.get("source", ""),
         )
         rec = build_receipt(
             recipe, {
@@ -105,11 +110,12 @@ def main() -> int:
         # computed over the final dict, and any post-hoc change breaks replay.
         (out / f"{q.lower()}.receipt.json").write_text(json.dumps(rec, indent=2))
         is_crown = "  <- current best" if q == crown else ""
-        rows.append(f"| {q} | {r['size_bytes']/1e9:.1f} | "
+        rows.append(f"| {q} | {fmt} | {r['size_bytes']/1e9:.1f} | "
                     f"{rec['fidelity']['top1_match']:.3f} | "
                     f"{'accepted' if rec['accepted'] else 'rejected'}{is_crown} |")
         board["leaderboard"].append({
             "quant": q,
+            "format": fmt,
             "size_gb": round(r["size_bytes"] / 1e9, 1),
             "top1": round(r["top1"], 4),
             "kl_max_component": round(r.get("kl_max_component", 0), 4),

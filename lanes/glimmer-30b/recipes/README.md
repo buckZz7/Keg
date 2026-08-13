@@ -13,7 +13,7 @@ See [`EXAMPLE.json`](EXAMPLE.json).
 | `model_file` | The model filename |
 | `model_sha256` | SHA-256 of the **exact file** — verified byte-for-byte by the house |
 | `quant` | Format / quant level, e.g. `Q6_K`, `Q8_0` |
-| `format` | Container: `gguf` at launch (other formats arrive via `docs/format-open.md`) |
+| `format` | Container: `gguf` or `safetensors` (format is detected from the file's own bytes at intake — never from the miner's claim) |
 | `runtime` | Runtime that serves it, e.g. `llama.cpp` |
 | `runtime_version` | Exact runtime commit, for reproducibility |
 | `source` | URL or repo path the house fetches the file from — **verified** (fetched + hashed, must match `model_sha256`) |
@@ -46,6 +46,8 @@ challenger dethrones only if smaller *and* accepted.
 
 ## Format expansion
 
-Launch is GGUF / llama.cpp. The competition opens to other formats via
-per-runtime adapters (vLLM → GPTQ/AWQ/FP8/NVFP4, ExLlama → EXL2), each gated on
-that runtime reproducing the reference. See [`docs/format-open.md`](../../../docs/format-open.md).
+Intake already accepts **GGUF and safetensors** — format is detected from the
+file's own bytes and a safetensors recipe can rank (carrying `format` into the
+board and receipt). Full *eval* support for a format requires its runtime
+adapter reproducing the reference (vLLM → GPTQ/AWQ/FP8/NVFP4, ExLlama → EXL2),
+each gated on that runtime's self-check. See [`docs/format-open.md`](../../../docs/format-open.md).
