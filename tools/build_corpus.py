@@ -36,13 +36,61 @@ WIKI_TOPICS = [
 ]
 
 # Multilingual component — glimmer is trained on 100+ languages, so the corpus
-# must cover non-English fidelity. Common articles with translations across
-# these wikis; one batched request per language keeps request count low.
+# must cover non-English fidelity. We pick a set of CONCRETE *concept* articles
+# and resolve each concept to its canonical title in every language via
+# Wikipedia's interlanguage links (langlinks). This guarantees the science
+# article in each language, not a band/album/song that happens to share the
+# English word. (Passing the bare English word "Chemistry" to non-English wikis
+# lands on the Kelly Clarkson album or a J-pop duo — not the concept.)
 MULTI_LANGS = ["de", "fr", "es", "pt", "it", "nl", "ru", "pl", "uk", "ar",
                "fa", "tr", "he", "hi", "bn", "zh", "ja", "ko", "vi", "th",
                "id", "sw"]
-MULTI_TITLES = ["Science", "History", "Mathematics", "Earth", "Language",
-                "Sun", "Water", "Human", "Philosophy", "Music", "Technology"]
+# Concepts are English article names; each is resolved to per-language titles.
+MULTI_TITLES = ["Physics", "Chemistry", "Biology", "Astronomy", "Mathematics",
+                "Geology", "Medicine", "Geography", "Agriculture", "Engineering"]
+
+# Language-family markers of disambiguation pages ("X can refer to:"). This is
+# the real safety net (independent of title choice): any intro that reads as a
+# list-of-meanings is dropped, whatever the language. Patterns are per-family;
+# unknown languages fall through to the structural heuristic below.
+_DISAMB_MARKERS = [
+    # Germanic (de/nl)  "X steht für / verwijzen naar / bezeichnet"
+    "steht für", "verweist auf", "verwijzen naar", "kan verwijzen", "wijst",
+    # Romance (fr/es/pt/it)  "X peut désigner / puede referirse / può riferirsi"
+    "peut désigner", "peut faire référence", "peut renvoyer",
+    "puede referirse", "puede hacer referencia", "puede ser",
+    "pode referir", "pode se referir", "può riferirsi", "può essere",
+    # Slavic (ru/pl/uk)  "X может означать / może oznaczać / може означати"
+    "может означать", "может обозначать", "може означати",
+    "może oznaczać", "może odnosić", "mоже да се отнася",
+    # Semitic (ar/he/fa)  "X قد تشير / עשוי להתייחס / میتواند اشاره"
+    "قد تشير", "قد يعني", "עשוי להתייחס", "יכול להתייחס", "میتواند اشاره",
+    # South/Southeast Asian + CJK
+    "dapat mengacu", "mungkin merujuk", "menunjuk kepada", "chỉ đến",
+    "có thể là", "đề cập", "може да се отнася",
+]
+_DISAMB_RE = __import__("re").compile("|".join(_DISAMB_MARKERS), __import__("re").I)
+
+
+def is_disambiguation(t: str) -> bool:
+    """Heuristically detect a Wikipedia disambiguation page.
+
+    Two independent signals, either of which drops the doc:
+      1. A language-family disambiguation marker ("X may refer to:").
+      2. A structural one: a short intro dominated by parenthetical qualifiers
+         and title-case tokens (album titles, band names) — the shape of a
+         list-of-meanings page even when no marker regex matched.
+    """
+    if _DISAMB_RE.search(t):
+        return True
+    # Structural: parenthetical-heavy + heavy title-case = catalogue of titles.
+    parens = len(__import__("re").findall(r"\(", t))
+    if len(t) < 200 and parens >= 3:
+        return True
+    # Many "X (qualifier)" patterns early in the text → list page.
+    if __import__("re").search(r"\([^)]{2,40}\),?\s+[A-Z\u00C0-\u017F]+\(", t):
+        return True
+    return False
 
 ARXIV_CATS = ["cs.CL", "cs.LG", "cs.CV", "cs.SE", "math.NA"]
 
@@ -118,26 +166,63 @@ def wiki_docs() -> list[str]:
 
 
 def multilingual_wiki_docs() -> list[str]:
-    """Non-English Wikipedia intros (multilingual fidelity for glimmer)."""
+    """Non-English Wikipedia article intros (multilingual fidelity for glimmer).
+
+    Each concept (e.g. Mathematics) is resolved to its canonical article title
+    in every target language via Wikipedia's interlanguage links (langlinks),
+    so we fetch the *concept*, not a same-named band/album/song. Disambiguation
+    pages are filtered as a safety net.
+    """
+    # 1) Resolve each concept -> {lang: local_title} via langlinks. Queried one
+    #    concept at a time: a batched multi-title langlinks query returns empty
+    #    langlinks for most pages (API continuation/limit quirk).
+    concept_titles = {}
+    for concept in MULTI_TITLES:
+        ll_url = ("https://en.wikipedia.org/w/api.php?action=query&format=json"
+                  f"&prop=langlinks&lllimit=500&titles={requests.utils.quote(concept)}")
+        data = fetch(ll_url)
+        if data:
+            try:
+                pages = json.loads(data)["query"]["pages"]
+            except Exception:
+                pages = {}
+            for page in pages.values():
+                title = page.get("title", "")
+                langs = {l["lang"]: l.get("*", "")
+                         for l in page.get("langlinks", [])
+                         if l.get("lang") in MULTI_LANGS}
+                if langs:
+                    concept_titles[title] = langs
+        time.sleep(0.3)
+    if not concept_titles:
+        print("  ! langlinks failed — falling back to raw English titles")
+        for t in MULTI_TITLES:
+            concept_titles[t] = {lang: t for lang in MULTI_LANGS}
+
+    # 2) Fetch each concept's intro in each language that has a local title.
     docs = []
-    for lang in MULTI_LANGS:
-        titles = "|".join(requests.utils.quote(t) for t in MULTI_TITLES)
-        url = (f"https://{lang}.wikipedia.org/w/api.php?action=query&format=json"
-               f"&prop=extracts&explaintext=1&exintro=1&redirects=1&titles={titles}")
-        data = fetch(url, retries=4)  # wikis rate-limit; be patient
-        if not data:
-            continue
-        try:
-            pages = json.loads(data)["query"]["pages"]
-        except Exception:
-            continue
-        n = 0
-        for page in pages.values():
-            d = keep_doc(page.get("extract", ""), hi=2200)
-            if d:
-                docs.append(d); n += 1
-        print(f"  wiki/{lang}: {n} docs")
-        time.sleep(1.5)
+    for concept, langs in concept_titles.items():
+        for lang, local_title in langs.items():
+            url = (f"https://{lang}.wikipedia.org/w/api.php?action=query&format=json"
+                   f"&prop=extracts&explaintext=1&exintro=1&redirects=1"
+                   f"&titles={requests.utils.quote(local_title)}")
+            data = fetch(url, retries=4)
+            if not data:
+                continue
+            try:
+                pages = json.loads(data)["query"]["pages"]
+            except Exception:
+                continue
+            for page in pages.values():
+                d = keep_doc(page.get("extract", ""), hi=2200)
+                if not d:
+                    continue
+                if is_disambiguation(d):
+                    print(f"  wiki/{lang}:{concept} dropped (disamb)")
+                    continue
+                docs.append(d)
+        time.sleep(0.5)
+    print(f"  multilingual: {len(docs)} docs across {len(concept_titles)} concepts")
     return docs
 
 

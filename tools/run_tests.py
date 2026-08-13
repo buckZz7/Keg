@@ -178,6 +178,30 @@ def test_verify_submission_local():
             check("verify: mismatch raises", True)
 
 
+def test_disambiguation_filter():
+    from build_corpus import is_disambiguation
+    disamb = [
+        # German "X steht für" list page
+        "Music steht für: Music (Kentucky), Ort in den USA Music (Lied), Lied von John Miles",
+        # Dutch "X kan verwijzen naar"
+        "Sun (Engels voor zon) kan verwijzen naar: SUN (media), een Surinaamse nieuwswebsite",
+        # Spanish "X puede referirse a"
+        "La palabra sun puede referirse a: Sun, unidad de longitud antiguamente utilizada en Japón",
+        # structural: short + parenthetical-heavy (no marker)
+        "Human (film 2015) Human (album) Human (band) Human (Lied)",
+    ]
+    clean = [
+        "Die Physik (bundesdeutsches Hochdeutsch: [fyˈziːk]) ist die Naturwissenschaft...",
+        "La chimie est une science de la nature qui étudie la matière et ses transformations...",
+        "Technologie adalah penerapan pengetahuan konseptual untuk mencapai tujuan praktis...",
+        "The chemical element oxygen is essential for life and makes up about 21% of the atmosphere...",
+    ]
+    for d in disamb:
+        check("disamb filter drops: %s" % d[:24], is_disambiguation(d), d[:60])
+    for c in clean:
+        check("disamb filter keeps: %s" % c[:24], not is_disambiguation(c), c[:60])
+
+
 def test_verify_submission_format_dispatch():
     """Format detection routes GGUF vs safetensors from bytes, not the claim."""
     from verify_submission import _detect_format, verify
@@ -279,6 +303,7 @@ def main():
     test_verify_submission_format_dispatch()
     test_verify_submission_safetensors()
     test_verify_submission_unknown_format()
+    test_disambiguation_filter()
     test_receipt_replay()
     test_gguf_real_file()
     print()
