@@ -48,27 +48,27 @@ The reference is the model's BF16 next-token behavior over the sampled positions
 Whether ONE reference can serve every runtime is an *empirical* question, not an
 assumption — floating-point is non-associative, so different kernels produce
 slightly different floats. **Research (arXiv 2506.09501) confirms this is the
-crux of opening the competition:** BF16-compute has substantial variance across
-configs; only FP32 accumulation with BF16 storage ("LayerCast") gives
-near-perfect determinism (~2.2% sample divergence). Our current reference is
-**llama.cpp BF16-compute** — a vLLM-measured BF16 model will NOT reproduce it
-exactly, so without an upgrade, every runtime would need its own reference and
-cross-format crown comparison would be impossible.
+crux of opening the competition:** FP32 accumulation with BF16 storage
+("LayerCast") gives near-perfect determinism across configs (~2.2% sample
+divergence), versus BF16-compute's substantial variance.
 
-The policy is decided by measurement, never by fiat:
+**Good news: our reference is already LayerCast-style.** llama.cpp's CUDA path
+keeps activations in FP32 throughout the compute graph (rms_norm, softmax,
+matmul accumulation all default to FP32 — cuBLAS `CUBLAS_COMPUTE_32F`), with the
+weights stored in BF16. That is exactly the BF16-storage / FP32-accumulation
+recipe the paper finds most deterministic. So the reference is already as
+cross-runtime-stable as it can be — **no regeneration is required as a
+prerequisite.** (The FP16/BF16-compute change to llama.cpp that *would* make it
+variance-prone is a rejected/unmerged proposal, not the shipped default.)
 
-1. **Prerequisite: upgrade the reference to FP32 compute** (BF16 storage, FP32
-   accumulation). This is the single highest-leverage move — it is what makes
-   ONE reference reproducible across runtimes (llama.cpp and vLLM), which is
-   what makes the crown cross-format. It must be done before any second runtime
-   is trusted, and it must be re-validated to confirm it doesn't inflate the
-   existing GGUF ladder (FP32 vs BF16 compute can shift numbers, forcing
-   re-calibration).
-2. **Default after upgrade: one FP32 reference** (the current corpus/positions,
-   runtime-agnostic, re-derived deterministically from the corpus hash). The
-   gate, receipt, and crown then score every format against the same truth.
-3. **When a new runtime is added (e.g. vLLM), run the cross-reference
-   self-check first:** generate that runtime's FP32 reference and compare to the
+The open question is on the *other* runtime's side: whether a vLLM-measured BF16
+model reproduces the stored reference within tolerance. The policy is decided by
+measurement, never by fiat:
+
+1. **One reference is the default** (the current llama.cpp FP32-compute BF16 one
+   — validated, calibrated, self-consistent for GGUF; already LayerCast-style).
+2. **When a new runtime is added (e.g. vLLM), run the cross-reference
+   self-check first:** generate that runtime's reference and compare to the
    stored one.
    - **Reproduces within tolerance** (far below the KL gate, 0.02) → **one
      reference serves all formats.** No proliferation; cross-format comparison
@@ -76,16 +76,21 @@ The policy is decided by measurement, never by fiat:
    - **Does not reproduce** → that runtime gets its **own reference** (generated
      once, public, hash-bound, re-derivable). Only runtimes that genuinely need
      it get one.
+3. **If the self-check fails, prefer an FP32-compute setting on the new runtime
+   before giving it its own reference.** The paper shows FP32 accumulation is
+   what closes cross-config drift; configuring the runtime to accumulate in FP32
+   maximizes the chance one reference suffices. Only if that still fails does
+   the runtime get its own reference.
 
 **The per-runtime self-check is non-negotiable for every runtime regardless** —
 the whole design rests on "this runtime genuinely reproduces the reference we're
 scoring against." That reproduction tolerance (validated, far below the gate) is
 the trust guarantee, and it's where the effort goes.
 
-Net: **FP32-compute reference upgrade first, single reference by default,
-per-runtime only when a self-check proves it needed.** The gate, receipt, and
-crown are unaffected — they all just score against whatever reference the
-runtime reproduces.
+Net: **one FP32-compute reference by default (already LayerCast-style), per-runtime
+reference only when a self-check proves it needed, FP32-compute on the new runtime
+as the first fix.** The gate, receipt, and crown are unaffected — they all just
+score against whatever reference the runtime reproduces.
 
 ## Anti-memorization gate per format
 
@@ -109,17 +114,18 @@ model" or a lossy loss. No special-casing required.
 
 ## Incremental rollout (each gated on self-check passing)
 
-1. Keep llama.cpp → GGUF (current), measured against the current BF16 reference.
-2. **Regenerate the reference with FP32 compute** (BF16 storage, FP32
-   accumulation). Re-validate the GGUF ladder against it — confirm it doesn't
-   shift the existing Q6_K crown / acceptance boundary. This is the
-   prerequisite for any cross-runtime work; without it, no second runtime can
-   share a reference.
+1. Keep llama.cpp → GGUF (current), measured against the current FP32-compute
+   BF16 reference (already LayerCast-style — no regeneration needed).
+2. **Run the cross-reference self-check for vLLM first.** Before building the
+   full adapter, measure whether a vLLM BF16 model reproduces the stored
+   reference within tolerance (far below the 0.02 gate). This decides the
+   reference policy empirically: one reference, or a per-runtime one. If it
+   fails, try FP32-compute settings on vLLM before giving it its own reference.
 3. **Build the vLLM adapter** → validates GPTQ/AWQ/FP8/NVFP4/safetensors. Note
    this is heavier than a loader: our gate needs **deep top-k (1024) logprobs at
    arbitrary stream positions**, which vLLM only exposes at full-vocab cost in
    library mode (`logprobs=-1`; the OpenAI-compat `max_logprobs` defaults to 20
-   and is capped). Self-check the adapter against the FP32 reference, then open
+   and is capped). Self-check the adapter against the reference, then open
    those formats.
 4. Add **ExLlama → EXL2** later if there's demand.
 
